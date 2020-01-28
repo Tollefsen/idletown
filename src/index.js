@@ -26,7 +26,6 @@ const config = {
 const game = new Phaser.Game(config);
 let cursors;
 let wasd;
-let space;
 let player;
 let showDebug = false;
 
@@ -144,7 +143,6 @@ function create() {
     down: this.input.keyboard.addKey("s"),
     up: this.input.keyboard.addKey("w")
   };
-  space = this.input.keyboard.space;
 
   // Help text that has a "fixed" position on the screen
   this.add
