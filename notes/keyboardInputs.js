@@ -5,7 +5,9 @@ let wasd;
 
 function create() {
   // ...
+  // cursors = { up: Key, right: Key, left: Key, down: Key, space: Key, shift: Key}
   cursors = this.input.keyboard.createCursorKeys();
+  // Add custom keys
   wasd = {
     left: this.input.keyboard.addKey("a"),
     right: this.input.keyboard.addKey("d"),
