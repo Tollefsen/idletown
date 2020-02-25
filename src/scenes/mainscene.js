@@ -1,3 +1,5 @@
+import Player from "../objects/player.js";
+
 export default class MainScene extends Phaser.Scene {
   constructor() {
     super({ active: false, visible: false, key: "Game" });
@@ -6,6 +8,7 @@ export default class MainScene extends Phaser.Scene {
     this.player;
     this.enemies = [];
     this.showDebug = false;
+    this.hearth;
   }
 
   preload() {
@@ -25,6 +28,7 @@ export default class MainScene extends Phaser.Scene {
       "../assets/atlas/atlas.png",
       "../assets/atlas/atlas.json"
     );
+    this.load.image("hearth", "../assets/hearth.png");
   }
 
   create() {
@@ -53,90 +57,35 @@ export default class MainScene extends Phaser.Scene {
       obj => obj.name === "Spawn Point"
     );
 
-    const enemySpawnPoints = map.findObject(
-      "Objects",
-      obj => obj.name === "Enemy"
-    );
-
-    console.log(enemySpawnPoints);
-
-    // Enemies
-    this.enemies.push(
-      this.physics.add
-        .sprite(enemySpawnPoints.x, enemySpawnPoints.y, "atlas", "misa-front")
-        .setSize(30, 40)
-        .setOffset(0, 24)
-    );
-
     // Create a sprite with physics enabled via the physics system. The image used for the sprite has
     // a bit of whitespace, so I'm using setSize & setOffset to control the size of the player's body.
-    this.player = this.physics.add
-      .sprite(spawnPoint.x, spawnPoint.y, "atlas", "misa-front")
-      .setSize(30, 40)
-      .setOffset(0, 24);
+    this.player = new Player(this, spawnPoint.x, spawnPoint.y);
+
+    // Enemies
+    map.findObject("Objects", obj => {
+      obj.name === "Enemy" ? this.enemies.push(obj) : null;
+      return false;
+    });
+
+    this.enemies = this.enemies.map(enemy => {
+      return this.physics.add
+        .sprite(enemy.x, enemy.y, "atlas", "misa-front")
+        .setSize(30, 40)
+        .setOffset(0, 24);
+    });
 
     // Watch the player and worldLayer for collisions, for the duration of the scene:
-    this.physics.add.collider(this.player, worldLayer);
+    this.physics.add.collider(this.player.getSprite(), worldLayer);
+    this.physics.add.collider(this.enemies[0], worldLayer);
+
+    this.physics.world.setBoundsCollision();
+    this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
     // Create the player's walking animations from the texture atlas. These are stored in the global
     // animation manager so any sprite can access them.
-    const anims = this.anims;
-    anims.create({
-      key: "misa-left-walk",
-      frames: anims.generateFrameNames("atlas", {
-        prefix: "misa-left-walk.",
-        start: 0,
-        end: 3,
-        zeroPad: 3
-      }),
-      frameRate: 10,
-      repeat: -1
-    });
-    anims.create({
-      key: "misa-right-walk",
-      frames: anims.generateFrameNames("atlas", {
-        prefix: "misa-right-walk.",
-        start: 0,
-        end: 3,
-        zeroPad: 3
-      }),
-      frameRate: 10,
-      repeat: -1
-    });
-    anims.create({
-      key: "misa-front-walk",
-      frames: anims.generateFrameNames("atlas", {
-        prefix: "misa-front-walk.",
-        start: 0,
-        end: 3,
-        zeroPad: 3
-      }),
-      frameRate: 10,
-      repeat: -1
-    });
-    anims.create({
-      key: "misa-back-walk",
-      frames: anims.generateFrameNames("atlas", {
-        prefix: "misa-back-walk.",
-        start: 0,
-        end: 3,
-        zeroPad: 3
-      }),
-      frameRate: 10,
-      repeat: -1
-    });
 
     const camera = this.cameras.main;
-    camera.startFollow(this.player);
     camera.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-
-    this.cursors = this.input.keyboard.createCursorKeys();
-    this.wasd = {
-      left: this.input.keyboard.addKey("a"),
-      right: this.input.keyboard.addKey("d"),
-      down: this.input.keyboard.addKey("s"),
-      up: this.input.keyboard.addKey("w")
-    };
 
     // Help text that has a "fixed" position on the screen
     this.add
@@ -146,6 +95,11 @@ export default class MainScene extends Phaser.Scene {
         padding: { x: 20, y: 10 },
         backgroundColor: "#ffffff"
       })
+      .setScrollFactor(0)
+      .setDepth(30);
+
+    this.hearth = this.add
+      .image(this.sys.scale.width - 64, 20, "hearth")
       .setScrollFactor(0)
       .setDepth(30);
 
@@ -168,51 +122,12 @@ export default class MainScene extends Phaser.Scene {
   }
 
   update(time, delta) {
-    const cursors = this.cursors;
-    const wasd = this.wasd;
-    const player = this.player;
-    const speed = 175;
-    const prevVelocity = player.body.velocity.clone();
+    this.player.update();
+    this.enemies[0].body.setVelocity(0);
 
-    // Stop any previous movement from the last frame
-    player.body.setVelocity(0);
-
-    // Horizontal movement
-    if (cursors.left.isDown || wasd.left.isDown) {
-      player.body.setVelocityX(-speed);
-    } else if (cursors.right.isDown || wasd.right.isDown) {
-      player.body.setVelocityX(speed);
-    }
-
-    // Vertical movement
-    if (cursors.up.isDown || wasd.up.isDown) {
-      player.body.setVelocityY(-speed);
-    } else if (cursors.down.isDown || wasd.down.isDown) {
-      player.body.setVelocityY(speed);
-    }
-
-    // Normalize and scale the velocity so that player can't move faster along a diagonal
-    player.body.velocity
-      .normalize()
-      .scale(cursors.shift.isDown ? speed * 2 : speed);
-
-    // Update the animation last and give left/right animations precedence over up/down animations
-    if (cursors.left.isDown || wasd.left.isDown) {
-      player.anims.play("misa-left-walk", true);
-    } else if (cursors.right.isDown || wasd.right.isDown) {
-      player.anims.play("misa-right-walk", true);
-    } else if (cursors.up.isDown || wasd.up.isDown) {
-      player.anims.play("misa-back-walk", true);
-    } else if (cursors.down.isDown || wasd.down.isDown) {
-      player.anims.play("misa-front-walk", true);
-    } else {
-      player.anims.stop();
-
-      // If we were moving, pick and idle frame to use
-      if (prevVelocity.x < 0) player.setTexture("atlas", "misa-left");
-      else if (prevVelocity.x > 0) player.setTexture("atlas", "misa-right");
-      else if (prevVelocity.y < 0) player.setTexture("atlas", "misa-back");
-      else if (prevVelocity.y > 0) player.setTexture("atlas", "misa-front");
+    if (this.physics.world.collide(this.player.getSprite(), this.enemies[0])) {
+      this.hearth.setVisible(false);
+      console.log("collition");
     }
   }
 }

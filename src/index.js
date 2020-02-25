@@ -1,5 +1,4 @@
 /**
- * Author: Michael Hadley, mikewesthad.com
  * Asset Credits:
  *  - Tuxemon, https://github.com/Tuxemon/Tuxemon
  */
