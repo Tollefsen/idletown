@@ -1,4 +1,6 @@
+import State from "../state.js";
 import Player from "../objects/player.js";
+import Doglin from "../objects/doglin.js";
 
 export default class MainScene extends Phaser.Scene {
   constructor() {
@@ -8,7 +10,7 @@ export default class MainScene extends Phaser.Scene {
     this.player;
     this.enemies = [];
     this.showDebug = false;
-    this.hearth;
+    this.hearths = [];
   }
 
   preload() {
@@ -28,6 +30,7 @@ export default class MainScene extends Phaser.Scene {
       "../assets/atlas/atlas.png",
       "../assets/atlas/atlas.json"
     );
+    this.load.image("doglin", "../assets/doglin2.png");
     this.load.image("hearth", "../assets/hearth.png");
   }
 
@@ -62,21 +65,21 @@ export default class MainScene extends Phaser.Scene {
     this.player = new Player(this, spawnPoint.x, spawnPoint.y);
 
     // Enemies
+    this.enemies = [];
     map.findObject("Objects", obj => {
       obj.name === "Enemy" ? this.enemies.push(obj) : null;
       return false;
     });
 
     this.enemies = this.enemies.map(enemy => {
-      return this.physics.add
-        .sprite(enemy.x, enemy.y, "atlas", "misa-front")
-        .setSize(30, 40)
-        .setOffset(0, 24);
+      return new Doglin(this, enemy.x, enemy.y);
     });
 
     // Watch the player and worldLayer for collisions, for the duration of the scene:
     this.physics.add.collider(this.player.getSprite(), worldLayer);
-    this.physics.add.collider(this.enemies[0], worldLayer);
+    this.enemies.map(enemy => {
+      this.physics.add.collider(enemy.getSprite(), worldLayer);
+    });
 
     this.physics.world.setBoundsCollision();
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
@@ -98,10 +101,19 @@ export default class MainScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(30);
 
-    this.hearth = this.add
-      .image(this.sys.scale.width - 64, 20, "hearth")
-      .setScrollFactor(0)
-      .setDepth(30);
+    this.hearths = [];
+    for (let index = 0; index < State.get().playerHealth; index++) {
+      this.hearths.push(
+        this.add
+          .image(32 + index * 24, this.sys.scale.height - 32, "hearth")
+          .setScrollFactor(0)
+          .setDepth(35)
+      );
+    }
+
+    this.input.keyboard.once("keydown_L", event => {
+      this.scene.start("GameOver");
+    });
 
     // Debug graphics
     this.input.keyboard.once("keydown_F", event => {
@@ -123,11 +135,14 @@ export default class MainScene extends Phaser.Scene {
 
   update(time, delta) {
     this.player.update();
-    this.enemies[0].body.setVelocity(0);
-
-    if (this.physics.world.collide(this.player.getSprite(), this.enemies[0])) {
-      this.hearth.setVisible(false);
-      console.log("collition");
+    this.enemies.map(enemy => enemy.update(this, this.player));
+    if (State.get().playerHealth < 1) {
+      this.scene.start("GameOver");
     }
+    this.hearths.forEach((element, index) => {
+      if (index > State.get().playerHealth) {
+        element.setVisible(false);
+      }
+    });
   }
 }

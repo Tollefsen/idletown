@@ -3,6 +3,7 @@
  *  - Tuxemon, https://github.com/Tuxemon/Tuxemon
  */
 import MainScene from "./scenes/mainscene.js";
+import GameOverScene from "./scenes/gameover.js";
 
 const config = {
   type: Phaser.AUTO,
@@ -16,7 +17,7 @@ const config = {
       gravity: { y: 0 }
     }
   },
-  scene: MainScene
+  scene: [MainScene, GameOverScene]
 };
 
 const game = new Phaser.Game(config);

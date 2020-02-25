@@ -1,5 +1,6 @@
 export default class Player {
   constructor(scene, x, y) {
+    this.scene = scene;
     const anims = scene.anims;
     anims.create({
       key: "misa-left-walk",
