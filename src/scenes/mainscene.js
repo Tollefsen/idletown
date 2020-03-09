@@ -3,6 +3,15 @@ import Player from "../objects/player.js";
 import Doglin from "../objects/doglin.js";
 import Explosion from "../objects/explosion.js";
 import state from "../state";
+import mapAsset from "../assets/tilemaps/tuxemon-town.json";
+import atlasPngAsset from "../assets/atlas/atlas.png";
+import atlasJSONAsset from "../assets/atlas/atlas.json";
+import explotionFullPngAsset from "../assets/explosionFull.png";
+import explotionFullJSONAsset from "../assets/explotionFull.json";
+import doglinAsset from "../assets/doglin2.png";
+import hearthAsset from "../assets/hearth.png";
+
+import tilesAsset from "../assets/tilesets/tuxmon-sample-32px-extruded.png";
 
 export default class MainScene extends Phaser.Scene {
   constructor() {
@@ -19,32 +28,18 @@ export default class MainScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image(
-      "tiles",
-      "./src/assets/tilesets/tuxmon-sample-32px-extruded.png"
-    );
-    this.load.tilemapTiledJSON(
-      "map",
-      "./src/assets/tilemaps/tuxemon-town.json"
-    );
+    this.load.image("tiles", tilesAsset);
+    this.load.tilemapTiledJSON("map", mapAsset);
 
     // An atlas is a way to pack multiple images together into one texture. I'm using it to load all
     // the player animations (walking left, walking right, etc.) in one image. For more info see:
     //  https://labs.phaser.io/view.html?src=src/animation/texture%20atlas%20animation.js
     // If you don't use an atlas, you can do the same thing with a spritesheet, see:
     //  https://labs.phaser.io/view.html?src=src/animation/single%20sprite%20sheet.js
-    this.load.atlas(
-      "atlas",
-      "./src/assets/atlas/atlas.png",
-      "./src/assets/atlas/atlas.json"
-    );
-    this.load.atlas(
-      "explotion",
-      "./src/assets/explosionFull.png",
-      "./src/assets/explotionFull.json"
-    );
-    this.load.image("doglin", "./src/assets/doglin2.png");
-    this.load.image("hearth", "./src/assets/hearth.png");
+    this.load.atlas("atlas", atlasPngAsset, atlasJSONAsset);
+    this.load.atlas("explotion", explotionFullPngAsset, explotionFullJSONAsset);
+    this.load.image("doglin", doglinAsset);
+    this.load.image("hearth", hearthAsset);
   }
 
   create() {
