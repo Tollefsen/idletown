@@ -1,6 +1,7 @@
 const key = "gameState";
 const initialState = {
-  playerHealth: 3
+  playerHealth: 3,
+  timer: 0
 };
 let listeners = [];
 let gamestate = load(key, initialState);

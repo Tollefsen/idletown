@@ -1,0 +1,266 @@
+{"frames": {
+    "explotion.000":
+{
+	"frame": {"x":0,"y":0,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.001":
+{
+	"frame": {"x":256,"y":0,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.002":
+{
+	"frame": {"x":512,"y":0,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.003":
+{
+	"frame": {"x":768,"y":0,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.004":
+{
+	"frame": {"x":1024,"y":0,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.005":
+{
+	"frame": {"x":1280,"y":0,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.006":
+{
+	"frame": {"x":1536,"y":0,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+}
+,
+"explotion.007":
+{
+	"frame": {"x":1792,"y":0,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.008":
+{
+	"frame": {"x":0,"y":256,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.009":
+{
+	"frame": {"x":256,"y":256,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.0010":
+{
+	"frame": {"x":512,"y":256,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.0011":
+{
+	"frame": {"x":768,"y":256,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.0012":
+{
+	"frame": {"x":1024,"y":256,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.0013":
+{
+	"frame": {"x":1280,"y":256,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.0014":
+{
+	"frame": {"x":1536,"y":256,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+}
+,
+"explotion.0015":
+{
+	"frame": {"x":1792,"y":256,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.0016":
+{
+	"frame": {"x":0,"y":512,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.0017":
+{
+	"frame": {"x":256,"y":512,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.0018":
+{
+	"frame": {"x":512,"y":512,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.0019":
+{
+	"frame": {"x":768,"y":512,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.0020":
+{
+	"frame": {"x":1024,"y":512,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.0021":
+{
+	"frame": {"x":1280,"y":512,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.0022":
+{
+	"frame": {"x":1536,"y":512,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+}
+,
+"explotion.0023":
+{
+	"frame": {"x":1792,"y":512,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.0024":
+{
+	"frame": {"x":0,"y":768,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.0025":
+{
+	"frame": {"x":256,"y":768,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.0026":
+{
+	"frame": {"x":512,"y":768,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.0027":
+{
+	"frame": {"x":768,"y":768,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.0028":
+{
+	"frame": {"x":1024,"y":768,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.0029":
+{
+	"frame": {"x":1280,"y":768,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+},
+"explotion.0030":
+{
+	"frame": {"x":1536,"y":768,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+}
+,
+"explotion.0031":
+{
+	"frame": {"x":1792,"y":768,"w":256,"h":256},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":256,"h":256},
+	"sourceSize": {"w":256,"h":256}
+}
+}, "meta": {
+    "image": "explotionFull.png",
+    "size": {"w":2048,"h":1024},
+    "scale": "1"
+}}

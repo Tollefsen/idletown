@@ -1,6 +1,8 @@
 import State from "../state.js";
 import Player from "../objects/player.js";
 import Doglin from "../objects/doglin.js";
+import Explosion from "../objects/explosion.js";
+import state from "../state";
 
 export default class MainScene extends Phaser.Scene {
   constructor() {
@@ -11,14 +13,20 @@ export default class MainScene extends Phaser.Scene {
     this.enemies = [];
     this.showDebug = false;
     this.hearths = [];
+    this.explotion;
+    this.timer;
+    this.goal;
   }
 
   preload() {
     this.load.image(
       "tiles",
-      "../assets/tilesets/tuxmon-sample-32px-extruded.png"
+      "./src/assets/tilesets/tuxmon-sample-32px-extruded.png"
     );
-    this.load.tilemapTiledJSON("map", "../assets/tilemaps/tuxemon-town.json");
+    this.load.tilemapTiledJSON(
+      "map",
+      "./src/assets/tilemaps/tuxemon-town.json"
+    );
 
     // An atlas is a way to pack multiple images together into one texture. I'm using it to load all
     // the player animations (walking left, walking right, etc.) in one image. For more info see:
@@ -27,11 +35,16 @@ export default class MainScene extends Phaser.Scene {
     //  https://labs.phaser.io/view.html?src=src/animation/single%20sprite%20sheet.js
     this.load.atlas(
       "atlas",
-      "../assets/atlas/atlas.png",
-      "../assets/atlas/atlas.json"
+      "./src/assets/atlas/atlas.png",
+      "./src/assets/atlas/atlas.json"
     );
-    this.load.image("doglin", "../assets/doglin2.png");
-    this.load.image("hearth", "../assets/hearth.png");
+    this.load.atlas(
+      "explotion",
+      "./src/assets/explosionFull.png",
+      "./src/assets/explotionFull.json"
+    );
+    this.load.image("doglin", "./src/assets/doglin2.png");
+    this.load.image("hearth", "./src/assets/hearth.png");
   }
 
   create() {
@@ -75,6 +88,11 @@ export default class MainScene extends Phaser.Scene {
       return new Doglin(this, enemy.x, enemy.y);
     });
 
+    const goalPoint = map.findObject("Objects", obj => obj.name === "Goal");
+
+    this.goal = this.add.rectangle(goalPoint.x, goalPoint.y, 20, 20, "#000000");
+    this.physics.add.collider(this.player.getSprite(), this.goal);
+
     // Watch the player and worldLayer for collisions, for the duration of the scene:
     this.physics.add.collider(this.player.getSprite(), worldLayer);
     this.enemies.map(enemy => {
@@ -93,6 +111,16 @@ export default class MainScene extends Phaser.Scene {
     // Help text that has a "fixed" position on the screen
     this.add
       .text(16, 16, 'Arrow keys to move\nPress "F" to show hitboxes', {
+        font: "18px monospace",
+        fill: "#000000",
+        padding: { x: 20, y: 10 },
+        backgroundColor: "#ffffff"
+      })
+      .setScrollFactor(0)
+      .setDepth(30);
+
+    this.timer = this.add
+      .text(400, 16, "Timer", {
         font: "18px monospace",
         fill: "#000000",
         padding: { x: 20, y: 10 },
@@ -134,13 +162,22 @@ export default class MainScene extends Phaser.Scene {
   }
 
   update(time, delta) {
+    this.timer.setText(time);
+    state.update(oldState => ({
+      ...oldState,
+      timer: time
+    }));
     this.player.update();
     this.enemies.map(enemy => enemy.update(this, this.player));
+    if (this.physics.world.collide(this.player.getSprite(), this.goal)) {
+      console.log("collision");
+      this.scene.start("Win");
+    }
     if (State.get().playerHealth < 1) {
       this.scene.start("GameOver");
     }
     this.hearths.forEach((element, index) => {
-      if (index > State.get().playerHealth) {
+      if (index >= State.get().playerHealth) {
         element.setVisible(false);
       }
     });

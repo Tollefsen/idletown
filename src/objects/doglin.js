@@ -11,7 +11,11 @@ export default class Doglin {
 
   update(scene, player) {
     this.sprite.body.setVelocity(0);
-    if (scene.physics.world.collide(player.getSprite(), this.sprite)) {
+    if (
+      scene.physics.world.collide(player.getSprite(), this.sprite) &&
+      !player.hitEnemy
+    ) {
+      player.gotHit();
       state.update(oldState => ({
         ...oldState,
         playerHealth: oldState.playerHealth - 1

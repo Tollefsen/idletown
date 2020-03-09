@@ -77,6 +77,18 @@
                  "width":0,
                  "x":762,
                  "y":1032
+                }, 
+                {
+                 "height":0,
+                 "id":282,
+                 "name":"Goal",
+                 "point":true,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":717.013152312261,
+                 "y":337.293169282987
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -85,7 +97,7 @@
          "y":0
         }],
  "nextlayerid":6,
- "nextobjectid":281,
+ "nextobjectid":283,
  "orientation":"orthogonal",
  "properties":[
         {

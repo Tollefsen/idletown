@@ -2,6 +2,7 @@
  * Asset Credits:
  *  - Tuxemon, https://github.com/Tuxemon/Tuxemon
  */
+import Phaser from "phaser";
 import MainScene from "./scenes/mainscene.js";
 import GameOverScene from "./scenes/gameover.js";
 
