@@ -145,25 +145,56 @@ function CalendarView({ calendar }: { calendar: CalendarConfig }) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
   const [viewMode, setViewMode] = useState<"calendar" | "summary">("calendar");
+  const [currentYear, setCurrentYear] = useState<number>(1);
+  const [currentEra, setCurrentEra] = useState<"before" | "after">("after");
 
   useEffect(() => {
     setEntries(storage.getEntries(calendar.id));
   }, [calendar.id]);
 
-  const getDateKey = (monthIndex: number, day: number): string => {
-    return `${monthIndex}-${day}`;
+  const isLeapYear = (year: number): boolean => {
+    if (!calendar.leapYearRule || calendar.leapYearRule.type === "none") {
+      return false;
+    }
+    if (calendar.leapYearRule.type === "gregorian") {
+      return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+    }
+    if (
+      calendar.leapYearRule.type === "custom" &&
+      calendar.leapYearRule.customRule
+    ) {
+      return calendar.leapYearRule.customRule(year);
+    }
+    return false;
+  };
+
+  const getMonthDays = (monthIndex: number): number => {
+    const month = calendar.months[monthIndex];
+    if (month.leapYearDays && isLeapYear(currentYear)) {
+      return month.leapYearDays;
+    }
+    return month.days;
+  };
+
+  const getDateKey = (
+    year: number,
+    era: string,
+    monthIndex: number,
+    day: number,
+  ): string => {
+    return `${era}:${year}:${monthIndex}:${day}`;
   };
 
   const getEntry = (
     monthIndex: number,
     day: number,
   ): DiaryEntry | undefined => {
-    const dateKey = getDateKey(monthIndex, day);
+    const dateKey = getDateKey(currentYear, currentEra, monthIndex, day);
     return entries.find((e) => e.date === dateKey);
   };
 
   const handleDateClick = (monthIndex: number, day: number) => {
-    setSelectedDate(getDateKey(monthIndex, day));
+    setSelectedDate(getDateKey(currentYear, currentEra, monthIndex, day));
   };
 
   const handleSaveEntry = (content: string) => {
@@ -190,6 +221,7 @@ function CalendarView({ calendar }: { calendar: CalendarConfig }) {
         <h2 className="text-2xl font-semibold">{calendar.name}</h2>
         <div className="flex gap-2">
           <button
+            type="button"
             onClick={() => setViewMode("calendar")}
             className={`px-3 py-1 rounded ${
               viewMode === "calendar"
@@ -200,6 +232,7 @@ function CalendarView({ calendar }: { calendar: CalendarConfig }) {
             Calendar
           </button>
           <button
+            type="button"
             onClick={() => setViewMode("summary")}
             className={`px-3 py-1 rounded ${
               viewMode === "summary"
@@ -211,6 +244,74 @@ function CalendarView({ calendar }: { calendar: CalendarConfig }) {
           </button>
         </div>
       </div>
+
+      {viewMode === "calendar" && (
+        <div className="mb-4 flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCurrentYear(currentYear - 1)}
+              className="px-3 py-1 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              ←
+            </button>
+            <input
+              type="number"
+              value={currentYear}
+              onChange={(e) => {
+                const year = Number.parseInt(e.target.value, 10);
+                if (!Number.isNaN(year) && year > 0) {
+                  setCurrentYear(year);
+                }
+              }}
+              className="font-semibold w-20 text-center px-2 py-1 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800"
+            />
+            {calendar.useEras && (
+              <span className="font-semibold">
+                {currentEra === "after" ? calendar.eraNames?.after || "AD" : calendar.eraNames?.before || "BC"}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => setCurrentYear(currentYear + 1)}
+              className="px-3 py-1 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              →
+            </button>
+          </div>
+          {calendar.useEras && (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentEra("before")}
+                className={`px-3 py-1 rounded text-sm ${
+                  currentEra === "before"
+                    ? "bg-foreground text-background"
+                    : "border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+                }`}
+              >
+                {calendar.eraNames?.before || "BC"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentEra("after")}
+                className={`px-3 py-1 rounded text-sm ${
+                  currentEra === "after"
+                    ? "bg-foreground text-background"
+                    : "border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+                }`}
+              >
+                {calendar.eraNames?.after || "AD"}
+              </button>
+            </div>
+          )}
+          {isLeapYear(currentYear) && (
+            <span className="text-sm px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
+              Leap Year
+            </span>
+          )}
+        </div>
+      )}
 
       {viewMode === "summary" ? (
         <SummaryView
@@ -231,30 +332,37 @@ function CalendarView({ calendar }: { calendar: CalendarConfig }) {
               >
                 <h3 className="font-semibold mb-3">{month.name}</h3>
                 <div className="grid grid-cols-7 gap-1">
-                  {Array.from({ length: month.days }, (_, i) => i + 1).map(
-                    (day) => {
-                      const dateKey = getDateKey(monthIndex, day);
-                      const entry = getEntry(monthIndex, day);
-                      const hasEntry = entry && entry.content.trim().length > 0;
-                      const isSelected = selectedDate === dateKey;
+                  {Array.from(
+                    { length: getMonthDays(monthIndex) },
+                    (_, i) => i + 1,
+                  ).map((day) => {
+                    const dateKey = getDateKey(
+                      currentYear,
+                      currentEra,
+                      monthIndex,
+                      day,
+                    );
+                    const entry = getEntry(monthIndex, day);
+                    const hasEntry = entry && entry.content.trim().length > 0;
+                    const isSelected = selectedDate === dateKey;
 
-                      return (
-                        <button
-                          key={day}
-                          onClick={() => handleDateClick(monthIndex, day)}
-                          className={`aspect-square p-2 text-sm rounded ${
-                            isSelected
-                              ? "bg-foreground text-background"
-                              : hasEntry
-                                ? "bg-blue-100 dark:bg-blue-900 hover:bg-blue-200 dark:hover:bg-blue-800"
-                                : "hover:bg-gray-100 dark:hover:bg-gray-800"
-                          }`}
-                        >
-                          {day}
-                        </button>
-                      );
-                    },
-                  )}
+                    return (
+                      <button
+                        type="button"
+                        key={day}
+                        onClick={() => handleDateClick(monthIndex, day)}
+                        className={`aspect-square p-2 text-sm rounded ${
+                          isSelected
+                            ? "bg-foreground text-background"
+                            : hasEntry
+                              ? "bg-blue-100 dark:bg-blue-900 hover:bg-blue-200 dark:hover:bg-blue-800"
+                              : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -264,6 +372,8 @@ function CalendarView({ calendar }: { calendar: CalendarConfig }) {
             {selectedDate ? (
               <DiaryEntryEditor
                 entry={selectedEntry}
+                selectedDate={selectedDate}
+                calendar={calendar}
                 onSave={handleSaveEntry}
                 onClose={() => setSelectedDate(null)}
               />
@@ -291,12 +401,44 @@ function SummaryView({
   const entriesWithContent = entries.filter((e) => e.content.trim().length > 0);
 
   const getDateLabel = (dateKey: string): string => {
+    const parts = dateKey.split(":");
+    if (parts.length === 4) {
+      const [era, year, monthIndex, day] = parts;
+      const month = calendar.months[Number(monthIndex)];
+      const eraLabel = calendar.useEras
+        ? era === "after"
+          ? calendar.eraNames?.after || "AD"
+          : calendar.eraNames?.before || "BC"
+        : "";
+      return `${month?.name || "Unknown"} ${day}, ${year} ${eraLabel}`.trim();
+    }
     const [monthIndex, day] = dateKey.split("-").map(Number);
     const month = calendar.months[monthIndex];
     return `${month?.name || "Unknown"} ${day}`;
   };
 
   const sortedEntries = [...entriesWithContent].sort((a, b) => {
+    const aParts = a.date.split(":");
+    const bParts = b.date.split(":");
+
+    if (aParts.length === 4 && bParts.length === 4) {
+      const [aEra, aYear, aMonth, aDay] = aParts.map((v, i) =>
+        i === 0 ? v : Number(v),
+      );
+      const [bEra, bYear, bMonth, bDay] = bParts.map((v, i) =>
+        i === 0 ? v : Number(v),
+      );
+
+      if (aEra !== bEra) return aEra === "before" ? -1 : 1;
+      if (aEra === "before") {
+        if (aYear !== bYear) return (bYear as number) - (aYear as number);
+      } else {
+        if (aYear !== bYear) return (aYear as number) - (bYear as number);
+      }
+      if (aMonth !== bMonth) return (aMonth as number) - (bMonth as number);
+      return (aDay as number) - (bDay as number);
+    }
+
     const [aMonth, aDay] = a.date.split("-").map(Number);
     const [bMonth, bDay] = b.date.split("-").map(Number);
     if (aMonth !== bMonth) return aMonth - bMonth;
@@ -316,8 +458,15 @@ function SummaryView({
       {sortedEntries.map((entry) => (
         <div
           key={entry.date}
+          role="button"
+          tabIndex={0}
           className="border border-gray-300 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer"
           onClick={() => onDateClick(entry.date)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              onDateClick(entry.date);
+            }
+          }}
         >
           <h3 className="font-semibold mb-2 text-blue-600 dark:text-blue-400">
             {getDateLabel(entry.date)}
@@ -333,10 +482,14 @@ function SummaryView({
 
 function DiaryEntryEditor({
   entry,
+  selectedDate,
+  calendar,
   onSave,
   onClose,
 }: {
   entry: DiaryEntry | null | undefined;
+  selectedDate: string;
+  calendar: CalendarConfig;
   onSave: (content: string) => void;
   onClose: () => void;
 }) {
@@ -354,10 +507,30 @@ function DiaryEntryEditor({
     return () => clearTimeout(timer);
   }, [content, onSave]);
 
+  const getDateLabel = (): string => {
+    const parts = selectedDate.split(":");
+    if (parts.length === 4) {
+      const [era, year, monthIndex, day] = parts;
+      const month = calendar.months[Number(monthIndex)];
+      const eraLabel = calendar.useEras
+        ? era === "after"
+          ? calendar.eraNames?.after || "AD"
+          : calendar.eraNames?.before || "BC"
+        : "";
+      return `${month?.name || "Unknown"} ${day}, ${year} ${eraLabel}`.trim();
+    }
+    const [monthIndex, day] = selectedDate.split("-").map(Number);
+    const month = calendar.months[monthIndex];
+    return `${month?.name || "Unknown"} ${day}`;
+  };
+
   return (
     <div className="border border-gray-300 dark:border-gray-700 rounded-lg p-4 sticky top-4">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="font-semibold">Diary Entry</h3>
+        <div>
+          <h3 className="font-semibold">Diary Entry</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">{getDateLabel()}</p>
+        </div>
         <button
           onClick={onClose}
           className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
@@ -380,7 +553,7 @@ const CALENDAR_TEMPLATES = {
     name: "Gregorian Calendar",
     months: [
       { name: "January", days: 31 },
-      { name: "February", days: 28 },
+      { name: "February", days: 28, leapYearDays: 29 },
       { name: "March", days: 31 },
       { name: "April", days: 30 },
       { name: "May", days: 31 },
@@ -392,6 +565,9 @@ const CALENDAR_TEMPLATES = {
       { name: "November", days: 30 },
       { name: "December", days: 31 },
     ],
+    leapYearRule: { type: "gregorian" as const },
+    useEras: true,
+    eraNames: { before: "BC", after: "AD" },
   },
   harptos: {
     name: "Calendar of Harptos",
@@ -415,6 +591,151 @@ const CALENDAR_TEMPLATES = {
       { name: "Nightal", days: 30 },
     ],
   },
+  eberron: {
+    name: "Eberron Calendar",
+    months: [
+      { name: "Zarantyr", days: 28 },
+      { name: "Olarune", days: 28 },
+      { name: "Therendor", days: 28 },
+      { name: "Eyre", days: 28 },
+      { name: "Dravago", days: 28 },
+      { name: "Nymm", days: 28 },
+      { name: "Lharvion", days: 28 },
+      { name: "Barrakas", days: 28 },
+      { name: "Rhaan", days: 28 },
+      { name: "Sypheros", days: 28 },
+      { name: "Aryth", days: 28 },
+      { name: "Vult", days: 28 },
+    ],
+  },
+  exandrian: {
+    name: "Exandrian Calendar",
+    months: [
+      { name: "Horisal", days: 29 },
+      { name: "Misuthar", days: 30 },
+      { name: "Dualahei", days: 30 },
+      { name: "Thunsheer", days: 31 },
+      { name: "Unndilar", days: 28 },
+      { name: "Brussendar", days: 31 },
+      { name: "Sydenstar", days: 32 },
+      { name: "Fessuran", days: 29 },
+      { name: "Quen'pillar", days: 27 },
+      { name: "Cuersaar", days: 29 },
+      { name: "Duscar", days: 32 },
+    ],
+  },
+  golarion: {
+    name: "Golarion Calendar",
+    months: [
+      { name: "Abadius", days: 31 },
+      { name: "Calistril", days: 28 },
+      { name: "Pharast", days: 31 },
+      { name: "Gozran", days: 30 },
+      { name: "Desnus", days: 31 },
+      { name: "Sarenith", days: 30 },
+      { name: "Erastus", days: 31 },
+      { name: "Arodus", days: 31 },
+      { name: "Rova", days: 30 },
+      { name: "Lamashan", days: 31 },
+      { name: "Neth", days: 30 },
+      { name: "Kuthona", days: 31 },
+    ],
+    useEras: true,
+    eraNames: { before: "AR", after: "AR" },
+  },
+  imperial: {
+    name: "Imperial Calendar (Warhammer)",
+    months: [
+      { name: "Hexenstag", days: 1 },
+      { name: "Nachexen", days: 32 },
+      { name: "Jahrdrung", days: 33 },
+      { name: "Mitterfruhl", days: 1 },
+      { name: "Pflugzeit", days: 33 },
+      { name: "Sigmarzeit", days: 33 },
+      { name: "Sommerzeit", days: 33 },
+      { name: "Sonnstill", days: 1 },
+      { name: "Vorgeheim", days: 33 },
+      { name: "Geheimnistag", days: 1 },
+      { name: "Nachgeheim", days: 32 },
+      { name: "Erntezeit", days: 33 },
+      { name: "Mittherbst", days: 1 },
+      { name: "Brauzeit", days: 33 },
+      { name: "Kaldezeit", days: 33 },
+      { name: "Ulriczeit", days: 33 },
+      { name: "Mondstille", days: 1 },
+      { name: "Vorhexen", days: 33 },
+    ],
+  },
+  tamrielic: {
+    name: "Tamrielic Calendar",
+    months: [
+      { name: "Morning Star", days: 31 },
+      { name: "Sun's Dawn", days: 28 },
+      { name: "First Seed", days: 31 },
+      { name: "Rain's Hand", days: 30 },
+      { name: "Second Seed", days: 31 },
+      { name: "Mid Year", days: 30 },
+      { name: "Sun's Height", days: 31 },
+      { name: "Last Seed", days: 31 },
+      { name: "Hearthfire", days: 30 },
+      { name: "Frostfall", days: 31 },
+      { name: "Sun's Dusk", days: 30 },
+      { name: "Evening Star", days: 31 },
+    ],
+  },
+  shire: {
+    name: "Shire Calendar",
+    months: [
+      { name: "Afteryule", days: 30 },
+      { name: "Solmath", days: 30 },
+      { name: "Rethe", days: 30 },
+      { name: "Astron", days: 30 },
+      { name: "Thrimidge", days: 30 },
+      { name: "Forelithe", days: 30 },
+      { name: "Afterlithe", days: 30 },
+      { name: "Wedmath", days: 30 },
+      { name: "Halimath", days: 30 },
+      { name: "Winterfilth", days: 30 },
+      { name: "Blotmath", days: 30 },
+      { name: "Foreyule", days: 30 },
+    ],
+  },
+  lunar: {
+    name: "Lunar Calendar (Islamic)",
+    months: [
+      { name: "Muharram", days: 30 },
+      { name: "Safar", days: 29 },
+      { name: "Rabi' al-Awwal", days: 30 },
+      { name: "Rabi' al-Thani", days: 29 },
+      { name: "Jumada al-Awwal", days: 30 },
+      { name: "Jumada al-Thani", days: 29 },
+      { name: "Rajab", days: 30 },
+      { name: "Sha'ban", days: 29 },
+      { name: "Ramadan", days: 30 },
+      { name: "Shawwal", days: 29 },
+      { name: "Dhu al-Qi'dah", days: 30 },
+      { name: "Dhu al-Hijjah", days: 29 },
+    ],
+    useEras: true,
+    eraNames: { before: "BH", after: "AH" },
+  },
+  hebrew: {
+    name: "Hebrew Calendar",
+    months: [
+      { name: "Nisan", days: 30 },
+      { name: "Iyar", days: 29 },
+      { name: "Sivan", days: 30 },
+      { name: "Tammuz", days: 29 },
+      { name: "Av", days: 30 },
+      { name: "Elul", days: 29 },
+      { name: "Tishrei", days: 30 },
+      { name: "Cheshvan", days: 29 },
+      { name: "Kislev", days: 30 },
+      { name: "Tevet", days: 29 },
+      { name: "Shevat", days: 30 },
+      { name: "Adar", days: 29 },
+    ],
+  },
 };
 
 function CreateCalendarModal({
@@ -425,8 +746,16 @@ function CreateCalendarModal({
   onSave: (calendar: CalendarConfig) => void;
 }) {
   const [name, setName] = useState("");
-  const [months, setMonths] = useState([{ name: "Month 1", days: 30 }]);
+  const [months, setMonths] = useState<
+    { name: string; days: number; leapYearDays?: number }[]
+  >([{ name: "Month 1", days: 30 }]);
   const [useTemplate, setUseTemplate] = useState(false);
+  const [useEras, setUseEras] = useState(false);
+  const [eraNameBefore, setEraNameBefore] = useState("BC");
+  const [eraNameAfter, setEraNameAfter] = useState("AD");
+  const [leapYearType, setLeapYearType] = useState<"none" | "gregorian">(
+    "none",
+  );
 
   const handleTemplateSelect = (
     templateKey: keyof typeof CALENDAR_TEMPLATES,
@@ -434,6 +763,16 @@ function CreateCalendarModal({
     const template = CALENDAR_TEMPLATES[templateKey];
     setName(template.name);
     setMonths(template.months);
+    if ("leapYearRule" in template && template.leapYearRule) {
+      setLeapYearType(template.leapYearRule.type);
+    }
+    if ("useEras" in template && template.useEras) {
+      setUseEras(true);
+      if ("eraNames" in template && template.eraNames) {
+        setEraNameBefore(template.eraNames.before);
+        setEraNameAfter(template.eraNames.after);
+      }
+    }
     setUseTemplate(true);
   };
 
@@ -445,19 +784,41 @@ function CreateCalendarModal({
       id: Date.now().toString(),
       name: name.trim(),
       months,
+      leapYearRule:
+        leapYearType === "none" ? undefined : { type: leapYearType },
+      useEras: useEras || undefined,
+      eraNames: useEras
+        ? { before: eraNameBefore, after: eraNameAfter }
+        : undefined,
     };
     onSave(calendar);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-        <h2 className="text-2xl font-bold mb-4">Create Calendar</h2>
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold">Create Calendar</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+          >
+            ✕
+          </button>
+        </div>
 
         {!useTemplate && (
           <div className="mb-6">
-            <h3 className="text-sm font-semibold mb-2">Choose a template</h3>
-            <div className="grid grid-cols-2 gap-2">
+            <h3 className="text-sm font-semibold mb-3">Choose a template</h3>
+            
+            <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">REAL-WORLD</h4>
+            <div className="grid grid-cols-2 gap-2 mb-4">
               <button
                 type="button"
                 onClick={() => handleTemplateSelect("gregorian")}
@@ -470,14 +831,102 @@ function CreateCalendarModal({
               </button>
               <button
                 type="button"
+                onClick={() => handleTemplateSelect("lunar")}
+                className="p-4 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 text-left"
+              >
+                <div className="font-semibold">Lunar Calendar</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Islamic/Hijri calendar
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTemplateSelect("hebrew")}
+                className="p-4 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 text-left"
+              >
+                <div className="font-semibold">Hebrew Calendar</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Traditional Jewish calendar
+                </div>
+              </button>
+            </div>
+
+            <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">FANTASY</h4>
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <button
+                type="button"
                 onClick={() => handleTemplateSelect("harptos")}
                 className="p-4 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 text-left"
               >
                 <div className="font-semibold">Calendar of Harptos</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Forgotten Realms calendar
+                  Forgotten Realms (D&D)
                 </div>
               </button>
+              <button
+                type="button"
+                onClick={() => handleTemplateSelect("eberron")}
+                className="p-4 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 text-left"
+              >
+                <div className="font-semibold">Eberron Calendar</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  12 months of 28 days (D&D)
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTemplateSelect("exandrian")}
+                className="p-4 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 text-left"
+              >
+                <div className="font-semibold">Exandrian Calendar</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Critical Role setting
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTemplateSelect("golarion")}
+                className="p-4 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 text-left"
+              >
+                <div className="font-semibold">Golarion Calendar</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Pathfinder setting
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTemplateSelect("imperial")}
+                className="p-4 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 text-left"
+              >
+                <div className="font-semibold">Imperial Calendar</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Warhammer Fantasy
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTemplateSelect("tamrielic")}
+                className="p-4 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 text-left"
+              >
+                <div className="font-semibold">Tamrielic Calendar</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Elder Scrolls setting
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTemplateSelect("shire")}
+                className="p-4 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 text-left"
+              >
+                <div className="font-semibold">Shire Calendar</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Lord of the Rings
+                </div>
+              </button>
+            </div>
+
+            <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">CUSTOM</h4>
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setUseTemplate(true)}
@@ -494,6 +943,13 @@ function CreateCalendarModal({
 
         {useTemplate && (
           <form onSubmit={handleSubmit}>
+            <button
+              type="button"
+              onClick={() => setUseTemplate(false)}
+              className="mb-4 text-sm text-gray-600 dark:text-gray-400 hover:underline"
+            >
+              ← Back to templates
+            </button>
             <div className="mb-4">
               <label className="block text-sm font-semibold mb-2">
                 Calendar Name
@@ -535,6 +991,29 @@ function CreateCalendarModal({
                     className="w-20 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800"
                     placeholder="Days"
                   />
+                  {leapYearType !== "none" && (
+                    <input
+                      type="number"
+                      min="1"
+                      value={month.leapYearDays || ""}
+                      onChange={(e) => {
+                        const newMonths = [...months];
+                        const val = Number.parseInt(e.target.value);
+                        if (val) {
+                          newMonths[index] = {
+                            ...newMonths[index],
+                            leapYearDays: val,
+                          };
+                        } else {
+                          const { leapYearDays, ...rest } = newMonths[index];
+                          newMonths[index] = rest as typeof month;
+                        }
+                        setMonths(newMonths);
+                      }}
+                      className="w-20 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800"
+                      placeholder="Leap"
+                    />
+                  )}
                   {months.length > 1 && (
                     <button
                       type="button"
@@ -561,6 +1040,66 @@ function CreateCalendarModal({
                 Add Month
               </button>
             </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-2">
+                Leap Year Rule
+              </label>
+              <select
+                value={leapYearType}
+                onChange={(e) =>
+                  setLeapYearType(e.target.value as "none" | "gregorian")
+                }
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800"
+              >
+                <option value="none">None</option>
+                <option value="gregorian">
+                  Gregorian (every 4 years, except centuries unless divisible by
+                  400)
+                </option>
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={useEras}
+                  onChange={(e) => setUseEras(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm font-semibold">Use Eras (BC/AD)</span>
+              </label>
+            </div>
+
+            {useEras && (
+              <div className="mb-4 grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-sm font-semibold mb-2">
+                    Before Era Name
+                  </label>
+                  <input
+                    type="text"
+                    value={eraNameBefore}
+                    onChange={(e) => setEraNameBefore(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800"
+                    placeholder="BC"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">
+                    After Era Name
+                  </label>
+                  <input
+                    type="text"
+                    value={eraNameAfter}
+                    onChange={(e) => setEraNameAfter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800"
+                    placeholder="AD"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-2 justify-end">
               <button

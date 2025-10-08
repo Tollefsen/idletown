@@ -1,4 +1,8 @@
 import type { CalendarConfig, DiaryEntry } from "./types";
+import { VersionControl } from "./versionControl";
+
+const CURRENT_VERSION = 1;
+const SUPPORTED_VERSIONS = [1];
 
 export interface StorageAdapter {
   getCalendars(): CalendarConfig[];
@@ -13,7 +17,40 @@ class LocalStorageAdapter implements StorageAdapter {
   private CALENDARS_KEY = "calendar-diary-calendars";
   private ENTRIES_KEY = "calendar-diary-entries";
 
-  getCalendars(): CalendarConfig[] {
+  private calendarVersionControl: VersionControl<CalendarConfig[]> | null = null;
+  private entryVersionControl: VersionControl<DiaryEntry[]> | null = null;
+  private initialized = false;
+
+  private ensureInitialized(): void {
+    if (this.initialized) return;
+    if (typeof window === "undefined") return;
+
+    this.calendarVersionControl = new VersionControl({
+      storageKey: this.CALENDARS_KEY,
+      currentVersion: CURRENT_VERSION,
+      supportedVersions: SUPPORTED_VERSIONS,
+      migrations: {},
+    });
+
+    this.entryVersionControl = new VersionControl({
+      storageKey: this.ENTRIES_KEY,
+      currentVersion: CURRENT_VERSION,
+      supportedVersions: SUPPORTED_VERSIONS,
+      migrations: {},
+    });
+
+    this.calendarVersionControl.initialize(() => {
+      localStorage.removeItem(this.CALENDARS_KEY);
+    });
+
+    this.entryVersionControl.initialize(() => {
+      localStorage.removeItem(this.ENTRIES_KEY);
+    });
+
+    this.initialized = true;
+  }
+
+  private getCalendarsRaw(): CalendarConfig[] {
     try {
       const data = localStorage.getItem(this.CALENDARS_KEY);
       return data ? JSON.parse(data) : [];
@@ -22,7 +59,22 @@ class LocalStorageAdapter implements StorageAdapter {
     }
   }
 
+  private getAllEntriesRaw(): DiaryEntry[] {
+    try {
+      const data = localStorage.getItem(this.ENTRIES_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  getCalendars(): CalendarConfig[] {
+    this.ensureInitialized();
+    return this.getCalendarsRaw();
+  }
+
   saveCalendar(calendar: CalendarConfig): void {
+    this.ensureInitialized();
     const calendars = this.getCalendars();
     const index = calendars.findIndex((c) => c.id === calendar.id);
     if (index >= 0) {
@@ -34,19 +86,22 @@ class LocalStorageAdapter implements StorageAdapter {
   }
 
   deleteCalendar(id: string): void {
+    this.ensureInitialized();
     const calendars = this.getCalendars().filter((c) => c.id !== id);
     localStorage.setItem(this.CALENDARS_KEY, JSON.stringify(calendars));
 
-    const entries = this.getAllEntries().filter((e) => e.calendarId !== id);
+    const entries = this.getAllEntriesRaw().filter((e) => e.calendarId !== id);
     localStorage.setItem(this.ENTRIES_KEY, JSON.stringify(entries));
   }
 
   getEntries(calendarId: string): DiaryEntry[] {
-    return this.getAllEntries().filter((e) => e.calendarId === calendarId);
+    this.ensureInitialized();
+    return this.getAllEntriesRaw().filter((e) => e.calendarId === calendarId);
   }
 
   saveEntry(entry: DiaryEntry): void {
-    const entries = this.getAllEntries();
+    this.ensureInitialized();
+    const entries = this.getAllEntriesRaw();
     const index = entries.findIndex(
       (e) => e.calendarId === entry.calendarId && e.date === entry.date,
     );
@@ -59,19 +114,11 @@ class LocalStorageAdapter implements StorageAdapter {
   }
 
   deleteEntry(calendarId: string, date: string): void {
-    const entries = this.getAllEntries().filter(
+    this.ensureInitialized();
+    const entries = this.getAllEntriesRaw().filter(
       (e) => !(e.calendarId === calendarId && e.date === date),
     );
     localStorage.setItem(this.ENTRIES_KEY, JSON.stringify(entries));
-  }
-
-  private getAllEntries(): DiaryEntry[] {
-    try {
-      const data = localStorage.getItem(this.ENTRIES_KEY);
-      return data ? JSON.parse(data) : [];
-    } catch {
-      return [];
-    }
   }
 }
 

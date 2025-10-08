@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import kaplay from "kaplay";
 import { useEffect } from "react";
@@ -8,9 +8,7 @@ export function ZombiesGame() {
   useEffect(() => {
     initGame();
   }, []);
-  return (
-      <canvas id="game" />
-  );
+  return <canvas id="game" />;
 }
 
 function initGame() {
@@ -21,6 +19,4 @@ function initGame() {
   });
 
   setupGame(k);
-
-};
-
+}
