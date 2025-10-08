@@ -3,14 +3,16 @@ import Link from "next/link";
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
-      <main className="flex-1 flex flex-col items-center justify-center p-8">
-        <div className="max-w-2xl text-center">
-          <h2 className="text-5xl font-bold mb-6">Welcome to Idle Town</h2>
-          <p className="text-xl mb-8 text-gray-600 dark:text-gray-400">
+      <main className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8">
+        <div className="max-w-2xl text-center px-4">
+          <h2 className="text-3xl sm:text-5xl font-bold mb-4 sm:mb-6">
+            Welcome to Idle Town
+          </h2>
+          <p className="text-base sm:text-xl mb-6 sm:mb-8 text-gray-600 dark:text-gray-400">
             A space where small projects come to idle
           </p>
 
-          <div className="flex gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
             <Link
               href="/zombies"
               className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-12 px-6"

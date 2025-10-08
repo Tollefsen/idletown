@@ -17,7 +17,8 @@ class LocalStorageAdapter implements StorageAdapter {
   private CALENDARS_KEY = "calendar-diary-calendars";
   private ENTRIES_KEY = "calendar-diary-entries";
 
-  private calendarVersionControl: VersionControl<CalendarConfig[]> | null = null;
+  private calendarVersionControl: VersionControl<CalendarConfig[]> | null =
+    null;
   private entryVersionControl: VersionControl<DiaryEntry[]> | null = null;
   private initialized = false;
 
