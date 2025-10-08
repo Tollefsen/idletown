@@ -9,7 +9,7 @@ export default function Home() {
           <p className="text-xl mb-8 text-gray-600 dark:text-gray-400">
             A space where small projects come to idle
           </p>
-          
+
           <div className="flex gap-4 justify-center">
             <Link
               href="/zombies"
@@ -22,7 +22,9 @@ export default function Home() {
               className="relative rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-12 px-6 opacity-50"
             >
               Calendar Diary
-              <span className="ml-2 text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-700 dark:text-yellow-400">WIP</span>
+              <span className="ml-2 text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-700 dark:text-yellow-400">
+                WIP
+              </span>
             </Link>
             <a
               href="https://sanghefte.no"
