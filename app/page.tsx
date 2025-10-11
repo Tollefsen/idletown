@@ -20,6 +20,12 @@ export default function Home() {
               Play Zombies
             </Link>
             <Link
+              href="/coinflipper"
+              className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-12 px-6"
+            >
+              Coin Flipper
+            </Link>
+            <Link
               href="/calendar-diary"
               className="relative rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-12 px-6 opacity-50"
             >
