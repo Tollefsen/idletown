@@ -1,4 +1,16 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Home",
+  description:
+    "Welcome to Idle Town - a collection of small projects including games, tools, and experiments.",
+  openGraph: {
+    title: "Idle Town - Home",
+    description:
+      "Welcome to Idle Town - a collection of small projects including games, tools, and experiments.",
+  },
+};
 
 export default function Home() {
   return (
