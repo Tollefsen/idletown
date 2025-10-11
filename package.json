@@ -10,10 +10,11 @@
     "lint:fix": "biome check --write ."
   },
   "dependencies": {
+    "kaplay": "3001.0.19",
     "next": "15.3.5",
+    "posthog-js": "^1.275.1",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "kaplay": "3001.0.19"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.1.0",
