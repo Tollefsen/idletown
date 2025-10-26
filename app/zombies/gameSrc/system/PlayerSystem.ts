@@ -1,7 +1,10 @@
 import type { KAPLAYCtx } from "kaplay";
 import { isPlayer } from "../entity/Player";
 
-export function PlayerSystem(k: KAPLAYCtx<{}, never>, numberOfEnemies: number) {
+export function PlayerSystem(
+  k: KAPLAYCtx<Record<string, never>, never>,
+  numberOfEnemies: number,
+) {
   const player = k.get("player")[0];
   if (!isPlayer(player)) return;
 

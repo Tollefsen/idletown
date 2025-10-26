@@ -14,7 +14,7 @@ export function findDistance(obj1: GameObj, obj2: GameObj) {
   return obj1.pos.dist(obj2.pos);
 }
 
-export function doXTimes(x: number, fn: Function) {
+export function doXTimes(x: number, fn: () => void) {
   for (let index = 0; index < x; index++) {
     fn();
   }

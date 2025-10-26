@@ -13,7 +13,7 @@ import { addPlayerControllers } from "../system/PlayerControllers";
 import { PlayerSystem } from "../system/PlayerSystem";
 import { doXTimes } from "../utils";
 
-export function gameScene(k: KAPLAYCtx<{}, never>) {
+export function gameScene(k: KAPLAYCtx<Record<string, never>, never>) {
   return k.scene("game", (numberOfEnemies: number) => {
     // Entities
 
@@ -22,7 +22,7 @@ export function gameScene(k: KAPLAYCtx<{}, never>) {
 
     // Add score
     const score = k.add([
-      k.text(numberOfEnemies - player.score + ""),
+      k.text(`${numberOfEnemies - player.score}`),
       k.pos(k.center()),
     ]);
 

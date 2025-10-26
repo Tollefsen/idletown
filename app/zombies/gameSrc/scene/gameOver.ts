@@ -1,6 +1,6 @@
 import type { KAPLAYCtx } from "kaplay";
 
-export function gameOverScene(k: KAPLAYCtx<{}, never>) {
+export function gameOverScene(k: KAPLAYCtx<Record<string, never>, never>) {
   return k.scene("game over", (numberOfRoundsSurvived: number) => {
     k.add([k.text("Game Over"), k.pos(k.center()), k.anchor("center")]);
     k.add([

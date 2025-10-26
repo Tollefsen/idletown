@@ -3,7 +3,7 @@ import { findDirection, findDirectionObjToPos, findDistance } from "../utils";
 import type { PlayerComp } from "./Player";
 
 export const spawnBullet = (
-  k: KAPLAYCtx<{}, never>,
+  k: KAPLAYCtx<Record<string, never>, never>,
   player: GameObj<PlayerComp>,
 ) => {
   if (!player.hasGun || !player.exists) return;
@@ -29,7 +29,7 @@ export const spawnBullet = (
 };
 
 export function spawnBulletTowardsMouse(
-  k: KAPLAYCtx<{}, never>,
+  k: KAPLAYCtx<Record<string, never>, never>,
   player: GameObj<PlayerComp>,
 ) {
   if (!player.hasGun || !player.exists) return;

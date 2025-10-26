@@ -68,6 +68,7 @@ export default function CalendarDiaryPage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <h1 className="text-2xl sm:text-3xl font-bold">Calendar Diary</h1>
             <button
+              type="button"
               onClick={() => setShowCreateCalendar(true)}
               className="px-4 py-2 bg-foreground text-background rounded hover:opacity-80 text-sm sm:text-base w-full sm:w-auto"
             >
@@ -93,7 +94,6 @@ export default function CalendarDiaryPage() {
                       <input
                         type="text"
                         defaultValue={calendar.name}
-                        autoFocus
                         onBlur={(e) =>
                           handleRenameCalendar(calendar.id, e.target.value)
                         }
@@ -118,6 +118,7 @@ export default function CalendarDiaryPage() {
                         }`}
                       >
                         <button
+                          type="button"
                           onClick={() => setSelectedCalendarId(calendar.id)}
                           className="flex-1 text-left"
                         >
@@ -125,6 +126,7 @@ export default function CalendarDiaryPage() {
                         </button>
                         <div className="flex gap-1">
                           <button
+                            type="button"
                             onClick={() => setEditingCalendarId(calendar.id)}
                             className="px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
                             title="Rename calendar"
@@ -132,6 +134,7 @@ export default function CalendarDiaryPage() {
                             ✏️
                           </button>
                           <button
+                            type="button"
                             onClick={() => handleDeleteCalendar(calendar.id)}
                             className="px-2 py-1 rounded hover:bg-red-200 dark:hover:bg-red-900"
                             title="Delete calendar"
@@ -377,7 +380,7 @@ function CalendarView({ calendar }: { calendar: CalendarConfig }) {
             <div className="space-y-4 sm:space-y-6">
               {calendar.months.map((month, monthIndex) => (
                 <div
-                  key={monthIndex}
+                  key={month.name}
                   className="border border-gray-300 dark:border-gray-700 rounded-lg p-3 sm:p-4"
                 >
                   <h3 className="font-semibold mb-3 text-sm sm:text-base">
@@ -511,17 +514,11 @@ function SummaryView({
   return (
     <div className="space-y-4">
       {sortedEntries.map((entry) => (
-        <div
+        <button
+          type="button"
           key={entry.date}
-          role="button"
-          tabIndex={0}
-          className="border border-gray-300 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer"
+          className="border border-gray-300 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer text-left w-full"
           onClick={() => onDateClick(entry.date)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              onDateClick(entry.date);
-            }
-          }}
         >
           <h3 className="font-semibold mb-2 text-blue-600 dark:text-blue-400">
             {getDateLabel(entry.date)}
@@ -529,7 +526,7 @@ function SummaryView({
           <p className="text-sm whitespace-pre-wrap line-clamp-3">
             {entry.content}
           </p>
-        </div>
+        </button>
       ))}
     </div>
   );
@@ -552,7 +549,7 @@ function DiaryEntryEditor({
 
   useEffect(() => {
     setContent(entry?.content || "");
-  }, [selectedDate]);
+  }, [entry?.content]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -589,6 +586,7 @@ function DiaryEntryEditor({
           </p>
         </div>
         <button
+          type="button"
           onClick={onClose}
           className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-xl"
         >
@@ -855,14 +853,24 @@ function CreateCalendarModal({
     <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
       onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          onClose();
+        }
+      }}
+      role="dialog"
+      aria-modal="true"
     >
       <div
         className="bg-white dark:bg-gray-900 rounded-lg p-4 sm:p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+        role="document"
       >
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl sm:text-2xl font-bold">Create Calendar</h2>
           <button
+            type="button"
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-xl"
           >
@@ -1036,10 +1044,14 @@ function CreateCalendarModal({
               ← Back to templates
             </button>
             <div className="mb-4">
-              <label className="block text-sm font-semibold mb-2">
+              <label
+                className="block text-sm font-semibold mb-2"
+                htmlFor="calendar-name"
+              >
                 Calendar Name
               </label>
               <input
+                id="calendar-name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -1049,9 +1061,9 @@ function CreateCalendarModal({
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-semibold mb-2">Months</label>
+              <div className="block text-sm font-semibold mb-2">Months</div>
               {months.map((month, index) => (
-                <div key={index} className="flex gap-2 mb-2">
+                <div key={month.name} className="flex gap-2 mb-2">
                   <input
                     type="text"
                     value={month.name}
@@ -1090,7 +1102,8 @@ function CreateCalendarModal({
                             leapYearDays: val,
                           };
                         } else {
-                          const { leapYearDays, ...rest } = newMonths[index];
+                          const { leapYearDays: _leapYearDays, ...rest } =
+                            newMonths[index];
                           newMonths[index] = rest as typeof month;
                         }
                         setMonths(newMonths);
@@ -1127,10 +1140,14 @@ function CreateCalendarModal({
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-semibold mb-2">
+              <label
+                className="block text-sm font-semibold mb-2"
+                htmlFor="leap-year-rule"
+              >
                 Leap Year Rule
               </label>
               <select
+                id="leap-year-rule"
                 value={leapYearType}
                 onChange={(e) =>
                   setLeapYearType(e.target.value as "none" | "gregorian")
@@ -1160,10 +1177,14 @@ function CreateCalendarModal({
             {useEras && (
               <div className="mb-4 grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-sm font-semibold mb-2">
+                  <label
+                    className="block text-sm font-semibold mb-2"
+                    htmlFor="era-before"
+                  >
                     Before Era Name
                   </label>
                   <input
+                    id="era-before"
                     type="text"
                     value={eraNameBefore}
                     onChange={(e) => setEraNameBefore(e.target.value)}
@@ -1172,10 +1193,14 @@ function CreateCalendarModal({
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2">
+                  <label
+                    className="block text-sm font-semibold mb-2"
+                    htmlFor="era-after"
+                  >
                     After Era Name
                   </label>
                   <input
+                    id="era-after"
                     type="text"
                     value={eraNameAfter}
                     onChange={(e) => setEraNameAfter(e.target.value)}

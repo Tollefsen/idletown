@@ -2,7 +2,9 @@ import type { AreaComp, GameObj, KAPLAYCtx, PosComp, RectComp } from "kaplay";
 
 export type GunComp = PosComp & AreaComp & RectComp;
 
-export function addGun(k: KAPLAYCtx<{}, never>): GameObj<GunComp> {
+export function addGun(
+  k: KAPLAYCtx<Record<string, never>, never>,
+): GameObj<GunComp> {
   return k.add([
     k.pos(k.width() - 0.2 * k.width(), k.height() / 2),
     k.rect(40, 40),
@@ -13,7 +15,7 @@ export function addGun(k: KAPLAYCtx<{}, never>): GameObj<GunComp> {
 }
 
 export function addGunWithPos(
-  k: KAPLAYCtx<{}, never>,
+  k: KAPLAYCtx<Record<string, never>, never>,
   x: number,
   y: number,
 ): GameObj<GunComp> {

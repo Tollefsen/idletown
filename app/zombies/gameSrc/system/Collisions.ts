@@ -4,7 +4,7 @@ import { isPlayer } from "../entity/Player";
 import { findDirection } from "../utils";
 
 // Bullet hits enemy
-export function bulletHitsEnemy(k: KAPLAYCtx<{}, never>) {
+export function bulletHitsEnemy(k: KAPLAYCtx<Record<string, never>, never>) {
   k.onCollide("bullet", "enemy", (bullet, enemy) => {
     enemy.hurt(1);
     enemy.aggro = true;
@@ -14,7 +14,7 @@ export function bulletHitsEnemy(k: KAPLAYCtx<{}, never>) {
 
 // Enemy hits player
 // TODO: collision triggers twice, why?
-export function enemyHitsPlayer(k: KAPLAYCtx<{}, never>) {
+export function enemyHitsPlayer(k: KAPLAYCtx<Record<string, never>, never>) {
   k.onCollide("enemy", "player", (enemy, player) => {
     const dir = findDirection(enemy, player);
 
@@ -31,7 +31,7 @@ export function enemyHitsPlayer(k: KAPLAYCtx<{}, never>) {
 }
 
 // Enemy hits enemy
-export function enemyHitsEnemy(k: KAPLAYCtx<{}, never>) {
+export function enemyHitsEnemy(k: KAPLAYCtx<Record<string, never>, never>) {
   k.onCollide("enemy", "enemy", (enemy1, enemy2) => {
     if (!isEnemy(enemy1) || !isEnemy(enemy2)) return;
     // Bounce them away from each other to avail a deadlock
@@ -42,7 +42,7 @@ export function enemyHitsEnemy(k: KAPLAYCtx<{}, never>) {
 }
 
 // Pickup gun
-export function playerPicksupGun(k: KAPLAYCtx<{}, never>) {
+export function playerPicksupGun(k: KAPLAYCtx<Record<string, never>, never>) {
   k.onCollide("player", "gun", (player, gun) => {
     gun.destroy();
     player.hasGun = true;

@@ -4,7 +4,7 @@ import type { PlayerComp } from "../entity/Player";
 import { findDirection, findDistance } from "../utils";
 
 export function EnemyAI(
-  k: KAPLAYCtx<{}, never>,
+  k: KAPLAYCtx<Record<string, never>, never>,
   player: GameObj<PlayerComp>,
   score: GameObj<PosComp | TextComp>,
   numberOfEnemies: number,
@@ -17,7 +17,7 @@ export function EnemyAI(
     enemy.onDeath(() => {
       k.destroy(enemy);
       player.score++;
-      score.text = numberOfEnemies - player.score + "";
+      score.text = `${numberOfEnemies - player.score}`;
     });
     enemy.onStateEnter("stunned", async () => {
       await k.wait(0.3);

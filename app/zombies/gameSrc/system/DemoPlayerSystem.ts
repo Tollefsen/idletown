@@ -1,7 +1,9 @@
 import type { KAPLAYCtx } from "kaplay";
 import { isPlayer } from "../entity/Player";
 
-export function addDemoPlayerSystem(k: KAPLAYCtx<{}, never>) {
+export function addDemoPlayerSystem(
+  k: KAPLAYCtx<Record<string, never>, never>,
+) {
   const player = k.get("player")[0];
   if (!isPlayer(player)) return;
 

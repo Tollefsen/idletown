@@ -5,7 +5,7 @@ import { getDemoSceneGameState } from "../scene/demo";
 import { findDirection, findDistance } from "../utils";
 
 export function DemoEnemyAI(
-  k: KAPLAYCtx<{}, never>,
+  k: KAPLAYCtx<Record<string, never>, never>,
   player: GameObj<PlayerComp>,
 ) {
   const enemies = k.get("enemy");

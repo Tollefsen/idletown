@@ -20,11 +20,13 @@ export type PlayerComp = PosComp &
   StateComp &
   OpacityComp;
 
-export function isPlayer(obj: GameObj<any>): obj is GameObj<PlayerComp> {
+export function isPlayer(obj: GameObj): obj is GameObj<PlayerComp> {
   return (obj as GameObj<PlayerComp>).is("player");
 }
 
-export function addDefaultPlayer(k: KAPLAYCtx<{}, never>): GameObj<PlayerComp> {
+export function addDefaultPlayer(
+  k: KAPLAYCtx<Record<string, never>, never>,
+): GameObj<PlayerComp> {
   return k.add([
     k.pos(0.2 * k.width(), k.height() / 2),
     k.sprite("bean"),

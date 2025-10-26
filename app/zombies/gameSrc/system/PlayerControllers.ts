@@ -1,9 +1,9 @@
-import type { GameObj, KAPLAYCtx, Key, Vec2 } from "kaplay";
+import type { GameObj, KAPLAYCtx } from "kaplay";
 import { spawnBulletTowardsMouse } from "../entity/Bullet";
 import type { PlayerComp } from "../entity/Player";
 
 export function addPlayerControllers(
-  k: KAPLAYCtx<{}, never>,
+  k: KAPLAYCtx<Record<string, never>, never>,
   player: GameObj<PlayerComp>,
 ) {
   k.onKeyDown("a", () => {

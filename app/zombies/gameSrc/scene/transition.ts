@@ -1,6 +1,6 @@
 import type { KAPLAYCtx } from "kaplay";
 
-export function transitionScene(k: KAPLAYCtx<{}, never>) {
+export function transitionScene(k: KAPLAYCtx<Record<string, never>, never>) {
   return k.scene("transition", (numberOfEnemies: number) => {
     k.add([
       k.text(`You survived round ${numberOfEnemies}`),

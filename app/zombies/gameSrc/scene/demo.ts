@@ -22,12 +22,12 @@ function getHearthsFromHp(hp: number): string {
   return result;
 }
 
-export function isGameState(obj: GameObj<any>): obj is GameObj<GameStateComp> {
+export function isGameState(obj: GameObj): obj is GameObj<GameStateComp> {
   return (obj as GameObj<GameStateComp>).is("gameState");
 }
 
 export function getDemoSceneGameState(
-  k: KAPLAYCtx<{}, never>,
+  k: KAPLAYCtx<Record<string, never>, never>,
 ): GameObj<GameStateComp> {
   const result = k.get("gameState")[0];
   if (!result || !isGameState(result)) {
@@ -36,7 +36,7 @@ export function getDemoSceneGameState(
   return result;
 }
 
-export function addDemoScene(k: KAPLAYCtx<{}, never>) {
+export function addDemoScene(k: KAPLAYCtx<Record<string, never>, never>) {
   return k.scene("demo", () => {
     const tileSize = 1920;
     const tileScale = 0.1;
@@ -105,7 +105,7 @@ export function addDemoScene(k: KAPLAYCtx<{}, never>) {
     k.onUpdate(() => {
       const gameState = getDemoSceneGameState(k);
       myText.text = getHearthsFromHp(player.hp());
-      score.text = gameState.playerScore + "";
+      score.text = `${gameState.playerScore}`;
       console.log(gameState.enemiesKilled);
       if (gameState.enemiesKilled >= gameState.numberOfEnemies) {
         k.go("transition", gameState.numberOfEnemies);

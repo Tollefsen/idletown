@@ -20,12 +20,12 @@ export type EnemyComp = PosComp &
   SpeedComp &
   StateComp;
 
-export function isEnemy(obj: GameObj<any>): obj is GameObj<EnemyComp> {
+export function isEnemy(obj: GameObj): obj is GameObj<EnemyComp> {
   return (obj as GameObj<EnemyComp>).is("enemy");
 }
 
 export function addNormalEnemy(
-  k: KAPLAYCtx<{}, never>,
+  k: KAPLAYCtx<Record<string, never>, never>,
   x: number,
   y: number,
 ): GameObj<EnemyComp> {
@@ -44,7 +44,7 @@ export function addNormalEnemy(
 }
 
 export function addNormalEnemyAvoidPlayer(
-  k: KAPLAYCtx<{}, never>,
+  k: KAPLAYCtx<Record<string, never>, never>,
   player: GameObj<PlayerComp>,
 ): GameObj<EnemyComp> {
   let enemy = addNormalEnemy(k, k.rand(k.width()), k.rand(k.height()));

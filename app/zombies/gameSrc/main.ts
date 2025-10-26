@@ -6,7 +6,7 @@ import { introScene } from "./scene/intro";
 import { transitionScene } from "./scene/transition";
 import { winScene } from "./scene/win";
 
-export function setupGame(k: KAPLAYCtx<{}, never>) {
+export function setupGame(k: KAPLAYCtx<Record<string, never>, never>) {
   k.loadSprite("bean", "sprites/bean.png");
   k.loadSprite("playerface", "sprites/Playerface.png");
   k.loadSprite("healthFull", "sprites/HealthFull.png");
