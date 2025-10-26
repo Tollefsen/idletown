@@ -20,6 +20,8 @@ function SketchbookContent() {
   const [currentStroke, setCurrentStroke] = useState<Stroke>([]);
   const [showQR, setShowQR] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState("");
+  const [shareUrl, setShareUrl] = useState("");
+  const [copied, setCopied] = useState(false);
   const searchParams = useSearchParams();
 
   const encodeStrokes = (strokesData: Stroke[]): string => {
@@ -105,9 +107,12 @@ function SketchbookContent() {
     const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
     const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
 
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
     return {
-      x: clientX - rect.left,
-      y: clientY - rect.top,
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
     };
   };
 
@@ -146,11 +151,14 @@ function SketchbookContent() {
     setStrokes([]);
     setCurrentStroke([]);
     setShowQR(false);
+    setCopied(false);
   };
 
   const handleShare = async () => {
     const encoded = encodeStrokes(strokes);
     const url = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
+    setShareUrl(url);
+    setCopied(false);
     try {
       const qrDataUrl = await QRCode.toDataURL(url, {
         width: 300,
@@ -163,8 +171,18 @@ function SketchbookContent() {
     }
   };
 
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-purple-100 to-pink-100 p-8">
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-purple-100 to-pink-100 p-4 sm:p-8">
       <Link
         href="/"
         className="absolute top-4 left-4 text-sm text-gray-700 hover:underline"
@@ -172,55 +190,60 @@ function SketchbookContent() {
         ← Back to Idle Town
       </Link>
 
-      <h1 className="text-3xl font-bold text-gray-800 mb-4">Sketchbook</h1>
+      <div className="flex flex-col items-center justify-center flex-1 max-w-3xl mx-auto w-full">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 mt-12 sm:mt-0">
+          Sketchbook
+        </h1>
 
-      <div className="bg-white rounded-lg shadow-lg p-4">
-        <canvas
-          ref={canvasRef}
-          width={600}
-          height={400}
-          className="border-2 border-gray-300 rounded cursor-crosshair touch-none"
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
-          onTouchStart={startDrawing}
-          onTouchMove={draw}
-          onTouchEnd={stopDrawing}
-        />
+        <div className="bg-white rounded-lg shadow-lg p-2 sm:p-4 w-full sm:max-w-lg">
+          <canvas
+            ref={canvasRef}
+            width={600}
+            height={700}
+            className="border-2 border-gray-300 rounded cursor-crosshair touch-none w-full h-auto"
+            style={{ aspectRatio: "6/7" }}
+            onMouseDown={startDrawing}
+            onMouseMove={draw}
+            onMouseUp={stopDrawing}
+            onMouseLeave={stopDrawing}
+            onTouchStart={startDrawing}
+            onTouchMove={draw}
+            onTouchEnd={stopDrawing}
+          />
 
-        <div className="flex gap-2 mt-4">
-          <button
-            type="button"
-            onClick={clearCanvas}
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
-          >
-            Clear
-          </button>
-          <button
-            type="button"
-            onClick={handleShare}
-            disabled={strokes.length === 0}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
-          >
-            Share
-          </button>
+          <div className="flex gap-2 mt-4">
+            <button
+              type="button"
+              onClick={clearCanvas}
+              className="flex-1 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              onClick={handleShare}
+              disabled={strokes.length === 0}
+              className="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              Share
+            </button>
+          </div>
         </div>
       </div>
 
       {showQR && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
           onClick={() => setShowQR(false)}
           onKeyDown={(e) => {
             if (e.key === "Escape") setShowQR(false);
           }}
         >
           <div
-            className="bg-white p-6 rounded-lg shadow-xl"
+            className="bg-white p-4 sm:p-6 rounded-lg shadow-xl max-w-sm w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-xl font-bold mb-4 text-gray-800">
+            <h2 className="text-lg sm:text-xl font-bold mb-4 text-gray-800">
               Scan to View Drawing
             </h2>
             <Image
@@ -229,14 +252,24 @@ function SketchbookContent() {
               width={300}
               height={300}
               unoptimized
+              className="w-full h-auto"
             />
-            <button
-              type="button"
-              onClick={() => setShowQR(false)}
-              className="mt-4 w-full px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition"
-            >
-              Close
-            </button>
+            <div className="flex gap-2 mt-4">
+              <button
+                type="button"
+                onClick={copyToClipboard}
+                className="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+              >
+                {copied ? "Copied!" : "Copy URL"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowQR(false)}
+                className="flex-1 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
