@@ -1,8 +1,18 @@
 "use client";
 
-import { useRef, useState } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { questions } from "./questions";
 import type { Answer, QuestionResult } from "./types";
+
+declare global {
+  interface Window {
+    YT: {
+      Player: new (id: string, config: unknown) => unknown;
+    };
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
 
 export default function MusicQuiz() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -14,20 +24,68 @@ export default function MusicQuiz() {
   const [results, setResults] = useState<QuestionResult[]>([]);
   const [showSummary, setShowSummary] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [videoKey, setVideoKey] = useState(0);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const playerRef = useRef<{
+    playVideo: () => void;
+    pauseVideo: () => void;
+    seekTo: (seconds: number) => void;
+    loadVideoById: (videoId: string) => void;
+    destroy: () => void;
+  } | null>(null);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    const firstScriptTag = document.getElementsByTagName("script")[0];
+    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+
+    const initQuestion = questions[0];
+    window.onYouTubeIframeAPIReady = () => {
+      playerRef.current = new window.YT.Player("youtube-player", {
+        height: "0",
+        width: "0",
+        videoId: initQuestion.youtubeId,
+        playerVars: {
+          controls: 0,
+          disablekb: 1,
+          modestbranding: 1,
+        },
+      }) as {
+        playVideo: () => void;
+        pauseVideo: () => void;
+        seekTo: (seconds: number) => void;
+        loadVideoById: (videoId: string) => void;
+        destroy: () => void;
+      };
+    };
+
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.destroy();
+      }
+    };
+  }, []);
 
   const handlePlay = () => {
-    setIsPlaying(true);
+    if (playerRef.current?.playVideo) {
+      playerRef.current.playVideo();
+      setIsPlaying(true);
+    }
   };
 
   const handlePause = () => {
-    setIsPlaying(false);
+    if (playerRef.current?.pauseVideo) {
+      playerRef.current.pauseVideo();
+      setIsPlaying(false);
+    }
   };
 
   const handleRestartAudio = () => {
-    setVideoKey((prev) => prev + 1);
-    setIsPlaying(true);
+    if (playerRef.current?.seekTo) {
+      playerRef.current.seekTo(0);
+      playerRef.current.playVideo();
+      setIsPlaying(true);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -58,7 +116,6 @@ export default function MusicQuiz() {
       setCurrentQuestion(currentQuestion + 1);
       setAnswers({ songName: "", originalArtist: "", coverStyle: "" });
       setIsPlaying(false);
-      setVideoKey((prev) => prev + 1);
     } else {
       setShowSummary(true);
     }
@@ -70,7 +127,6 @@ export default function MusicQuiz() {
     setResults([]);
     setShowSummary(false);
     setIsPlaying(false);
-    setVideoKey((prev) => prev + 1);
   };
 
   if (showSummary) {
@@ -95,6 +151,12 @@ export default function MusicQuiz() {
     return (
       <div className="min-h-screen p-8 bg-gray-50">
         <div className="max-w-4xl mx-auto">
+          <Link
+            href="/"
+            className="inline-block mb-6 text-blue-600 hover:text-blue-700"
+          >
+            ← Back to Home
+          </Link>
           <h1 className="text-4xl font-bold mb-8">Quiz Summary</h1>
 
           <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
@@ -116,11 +178,16 @@ export default function MusicQuiz() {
           </div>
 
           <div className="space-y-6">
-            {results.map((result, idx) => {
+            {results.map((result) => {
               const question = questions[result.questionIndex];
               return (
-                <div key={idx} className="bg-white rounded-lg shadow-lg p-6">
-                  <h3 className="text-xl font-bold mb-4">Question {idx + 1}</h3>
+                <div
+                  key={result.questionIndex}
+                  className="bg-white rounded-lg shadow-lg p-6"
+                >
+                  <h3 className="text-xl font-bold mb-4">
+                    Question {result.questionIndex + 1}
+                  </h3>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <p className="font-semibold">Song Name</p>
@@ -196,6 +263,12 @@ export default function MusicQuiz() {
   return (
     <div className="min-h-screen p-8 bg-gray-50">
       <div className="max-w-4xl mx-auto">
+        <Link
+          href="/"
+          className="inline-block mb-6 text-blue-600 hover:text-blue-700"
+        >
+          ← Back to Home
+        </Link>
         <div className="mb-6">
           <h1 className="text-4xl font-bold mb-2">Music Quiz</h1>
           <p className="text-gray-600">
@@ -205,18 +278,11 @@ export default function MusicQuiz() {
 
         <div className="bg-white rounded-lg shadow-lg p-8">
           <div className="mb-8">
-            {isPlaying && (
-              <iframe
-                key={`${currentQuestion}-${videoKey}`}
-                ref={iframeRef}
-                width="0"
-                height="0"
-                src={`https://www.youtube.com/embed/${question.youtubeId}?autoplay=1`}
-                title="YouTube audio player"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                style={{ border: 0, position: "absolute", left: "-9999px" }}
-              />
-            )}
+            <div
+              id="youtube-player"
+              ref={playerContainerRef}
+              style={{ display: "none" }}
+            />
             <div className="flex flex-col items-center justify-center gap-4 p-6 bg-gray-100 rounded-lg">
               <div className="flex gap-3">
                 {!isPlaying ? (
