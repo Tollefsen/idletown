@@ -258,8 +258,6 @@ export default function MusicQuiz() {
     );
   }
 
-  const question = questions[currentQuestion];
-
   return (
     <div className="min-h-screen p-8 bg-gray-50">
       <div className="max-w-4xl mx-auto">
