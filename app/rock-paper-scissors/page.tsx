@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { BackLink } from "../components/BackLink";
+import { Button } from "../components/Button";
 import { ConnectionModal } from "./ConnectionModal";
 import { GameBoard } from "./GameBoard";
 import type { Choice, GameData, Message } from "./types";
@@ -165,17 +167,19 @@ export default function RockPaperScissors() {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="flex justify-between items-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-900">
-              Rock Paper Scissors
-            </h1>
+            <div className="flex items-center gap-4">
+              <BackLink />
+              <h1 className="text-4xl font-bold text-gray-900">
+                Rock Paper Scissors
+              </h1>
+            </div>
             {!isConnected && !isOfflineMode && (
-              <button
-                type="button"
+              <Button
+                variant="primary"
                 onClick={() => setShowConnectionModal(true)}
-                className="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Connect
-              </button>
+              </Button>
             )}
             {isConnected && (
               <div className="bg-green-100 text-green-800 py-2 px-4 rounded-lg font-semibold">

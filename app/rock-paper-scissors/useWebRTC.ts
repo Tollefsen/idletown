@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { LIMITS, STUN_SERVERS } from "../config/constants";
 import type { Message } from "./types";
 
 function encodeConnectionData(data: RTCSessionDescriptionInit): string {
@@ -22,10 +23,7 @@ export function useWebRTC(onMessage: (message: Message) => void) {
 
   const createPeerConnection = useCallback(() => {
     const pc = new RTCPeerConnection({
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" },
-      ],
+      iceServers: STUN_SERVERS,
       iceCandidatePoolSize: 10,
     });
 
@@ -44,7 +42,7 @@ export function useWebRTC(onMessage: (message: Message) => void) {
           if (pc.localDescription) {
             setLocalOffer(encodeConnectionData(pc.localDescription));
           }
-        }, 3000);
+        }, LIMITS.iceGatheringTimeout);
       }
     };
 

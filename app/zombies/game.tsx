@@ -2,6 +2,7 @@
 
 import kaplay from "kaplay";
 import { useEffect, useRef } from "react";
+import { BackLink } from "../components/BackLink";
 import { setupGame } from "./gameSrc/main";
 
 export function ZombiesGame() {
@@ -22,5 +23,10 @@ export function ZombiesGame() {
     setupGame(k);
   }, []);
 
-  return <canvas ref={canvasRef} />;
+  return (
+    <div className="relative">
+      <BackLink className="absolute top-4 left-4 z-10" />
+      <canvas ref={canvasRef} />
+    </div>
+  );
 }

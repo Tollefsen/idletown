@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
+import { BackLink } from "../components/BackLink";
 
 const numberWords = [
   "zero",
@@ -61,12 +61,7 @@ export default function CoinFlipper() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-blue-100 to-blue-200 p-8">
-      <Link
-        href="/"
-        className="absolute top-4 left-4 text-sm text-gray-700 hover:underline"
-      >
-        ← Back to Idle Town
-      </Link>
+      <BackLink />
 
       <div className="mb-8">
         <p className="text-2xl text-gray-700 font-bold capitalize">

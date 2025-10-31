@@ -1,3 +1,4 @@
+import { STORAGE_KEYS } from "../config/constants";
 import type { CalendarConfig, DiaryEntry } from "./types";
 import { VersionControl } from "./versionControl";
 
@@ -14,8 +15,8 @@ export interface StorageAdapter {
 }
 
 class LocalStorageAdapter implements StorageAdapter {
-  private CALENDARS_KEY = "calendar-diary-calendars";
-  private ENTRIES_KEY = "calendar-diary-entries";
+  private CALENDARS_KEY = STORAGE_KEYS.calendarDiaryCalendars;
+  private ENTRIES_KEY = STORAGE_KEYS.calendarDiaryEntries;
 
   private calendarVersionControl: VersionControl<CalendarConfig[]> | null =
     null;

@@ -1,9 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import QRCode from "qrcode";
 import { Suspense, useEffect, useState } from "react";
+import { BackLink } from "../components/BackLink";
+import { Button } from "../components/Button";
+import { LIMITS, MESSAGES } from "../config/constants";
 import { QRModal } from "./QRModal";
 import { SketchCanvas } from "./SketchCanvas";
 import type { Stroke } from "./types";
@@ -42,10 +44,9 @@ function SketchbookContent() {
     const encoded = encodeStrokes(strokes);
     const url = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
 
-    const QR_CAPACITY = 3391;
-    if (url.length > QR_CAPACITY) {
+    if (url.length > LIMITS.qrCapacity) {
       setError(
-        `Drawing is too detailed (${url.length} chars, max ${QR_CAPACITY}). Try a simpler drawing.`,
+        MESSAGES.errors.drawingTooDetailed(url.length, LIMITS.qrCapacity),
       );
       return;
     }
@@ -61,18 +62,13 @@ function SketchbookContent() {
       setShowQR(true);
     } catch (err) {
       console.error("Failed to generate QR code:", err);
-      setError("Failed to generate QR code. Drawing may be too detailed.");
+      setError(MESSAGES.errors.qrGenerationFailed);
     }
   };
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-purple-100 to-pink-100 p-4 sm:p-8">
-      <Link
-        href="/"
-        className="absolute top-4 left-4 text-sm text-gray-700 hover:underline"
-      >
-        ← Back to Idle Town
-      </Link>
+      <BackLink />
 
       <div className="flex flex-col items-center justify-center flex-1 max-w-3xl mx-auto w-full">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 mt-12 sm:mt-0">
@@ -94,21 +90,17 @@ function SketchbookContent() {
           )}
 
           <div className="flex gap-2 mt-4">
-            <button
-              type="button"
-              onClick={clearCanvas}
-              className="flex-1 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
-            >
+            <Button variant="danger" onClick={clearCanvas} className="flex-1">
               Clear
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="primary"
               onClick={handleShare}
               disabled={strokes.length === 0}
-              className="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="flex-1"
             >
               Share
-            </button>
+            </Button>
           </div>
         </div>
       </div>

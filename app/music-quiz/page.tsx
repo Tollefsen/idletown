@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { BackLink } from "../components/BackLink";
+import { Button } from "../components/Button";
 import { questions } from "./questions";
 import type { Answer, QuestionResult } from "./types";
 
@@ -151,12 +152,7 @@ export default function MusicQuiz() {
     return (
       <div className="min-h-screen p-8 bg-gray-50">
         <div className="max-w-4xl mx-auto">
-          <Link
-            href="/"
-            className="inline-block mb-6 text-blue-600 hover:text-blue-700"
-          >
-            ← Back to Home
-          </Link>
+          <BackLink className="mb-6" />
           <h1 className="text-4xl font-bold mb-8">Quiz Summary</h1>
 
           <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
@@ -246,13 +242,13 @@ export default function MusicQuiz() {
             })}
           </div>
 
-          <button
-            type="button"
+          <Button
+            variant="primary"
             onClick={handleQuizRestart}
-            className="mt-8 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="mt-8"
           >
             Restart Quiz
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -261,12 +257,7 @@ export default function MusicQuiz() {
   return (
     <div className="min-h-screen p-8 bg-gray-50">
       <div className="max-w-4xl mx-auto">
-        <Link
-          href="/"
-          className="inline-block mb-6 text-blue-600 hover:text-blue-700"
-        >
-          ← Back to Home
-        </Link>
+        <BackLink className="mb-6" />
         <div className="mb-6">
           <h1 className="text-4xl font-bold mb-2">Music Quiz</h1>
           <p className="text-gray-600">
@@ -284,29 +275,17 @@ export default function MusicQuiz() {
             <div className="flex flex-col items-center justify-center gap-4 p-6 bg-gray-100 rounded-lg">
               <div className="flex gap-3">
                 {!isPlaying ? (
-                  <button
-                    type="button"
-                    onClick={handlePlay}
-                    className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-lg"
-                  >
+                  <Button variant="primary" onClick={handlePlay} size="lg">
                     ▶ Play
-                  </button>
+                  </Button>
                 ) : (
                   <>
-                    <button
-                      type="button"
-                      onClick={handlePause}
-                      className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                    >
+                    <Button variant="secondary" onClick={handlePause}>
                       ⏸ Pause
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleRestartAudio}
-                      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                    >
+                    </Button>
+                    <Button variant="primary" onClick={handleRestartAudio}>
                       ⏮ Restart
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>
@@ -374,14 +353,11 @@ export default function MusicQuiz() {
               />
             </div>
 
-            <button
-              type="submit"
-              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
+            <Button type="submit" variant="primary" className="w-full">
               {currentQuestion < questions.length - 1
                 ? "Next Question"
                 : "Finish Quiz"}
-            </button>
+            </Button>
           </form>
         </div>
       </div>
