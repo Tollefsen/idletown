@@ -6,7 +6,9 @@
 - **Lint**: `pnpm run lint`
 - **Lint fix**: `pnpm run lint:fix`
 - **Start**: `pnpm run start`
-- **Test**: No test script configured
+- **Test**: `pnpm run test` (watch mode)
+- **Test run**: `pnpm run test:run` (single run)
+- **Test UI**: `pnpm run test:ui` (UI mode)
 
 ## Code Style
 - **Language**: TypeScript with strict mode enabled
@@ -17,11 +19,17 @@
 - **Error handling**: Use try/catch for async operations, validate inputs
 - **Components**: Follow Kaplay patterns for games, use composition over inheritance
 - **File structure**: Group by feature (entity/, comp/, system/, scene/ for games)
+- **Testing**: Use Vitest with Arrange/Act/Assert pattern. Write tests alongside code with .test.ts suffix
 
 ## Project Context
 - Next.js 15 with React 19
 - Biome for linting and formatting
 - Tailwind CSS for styling
+- Vitest with happy-dom for testing
 - Multiple projects:
   - **Zombies**: Kaplay-based 2D survival game with player, enemies, bullets, and scoring
   - **Calendar Diary**: Custom calendar app with diary entries, localStorage backend with swappable adapter
+  - **Sketchbook**: Canvas-based drawing app with stroke encoding/decoding
+  - **Music Quiz**: YouTube-based music quiz game
+  - **Rock Paper Scissors**: WebRTC multiplayer game
+  - **Coin Flipper**: Simple coin flip app
