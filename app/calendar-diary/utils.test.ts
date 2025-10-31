@@ -1,12 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import type { CalendarConfig, LeapYearRule } from "./types";
 import {
-  isLeapYear,
-  getMonthDays,
   getDateKey,
   getDateLabel,
+  getMonthDays,
+  isLeapYear,
   sortEntries,
 } from "./utils";
-import type { CalendarConfig, LeapYearRule } from "./types";
 
 describe("isLeapYear", () => {
   it("should return false when no leap year rule is provided", () => {

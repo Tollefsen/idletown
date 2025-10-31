@@ -1,12 +1,12 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import type { Stroke } from "./types";
 import {
-  encodeStrokes,
   decodeStrokes,
   drawStroke,
-  redrawCanvas,
+  encodeStrokes,
   getCanvasPoint,
+  redrawCanvas,
 } from "./utils";
-import type { Stroke } from "./types";
 
 describe("encodeStrokes", () => {
   it("should encode strokes to base64 string", () => {
@@ -57,6 +57,23 @@ describe("encodeStrokes", () => {
     const result = encodeStrokes(strokes);
 
     expect(result).toBeTruthy();
+  });
+
+  it("should compress data smaller than original format", () => {
+    const strokes: Stroke[] = [];
+    for (let s = 0; s < 10; s++) {
+      const stroke: Stroke = [];
+      for (let i = 0; i < 150; i++) {
+        stroke.push({ x: Math.random() * 600, y: Math.random() * 700 });
+      }
+      strokes.push(stroke);
+    }
+
+    const result = encodeStrokes(strokes);
+    const decoded = decodeStrokes(result);
+
+    expect(decoded.length).toBe(10);
+    expect(result.length).toBeLessThan(3000);
   });
 });
 

@@ -1,11 +1,11 @@
-import { describe, it, expect, vi } from "vitest";
+import type { GameObj, Vec2 } from "kaplay";
+import { describe, expect, it, vi } from "vitest";
 import {
+  doXTimes,
   findDirection,
   findDirectionObjToPos,
   findDistance,
-  doXTimes,
 } from "./utils";
-import type { GameObj, Vec2 } from "kaplay";
 
 describe("findDirection", () => {
   it("should calculate unit vector from obj1 to obj2", () => {
