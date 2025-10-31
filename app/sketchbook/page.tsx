@@ -15,6 +15,7 @@ function SketchbookContent() {
   const [showQR, setShowQR] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [shareUrl, setShareUrl] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -34,11 +35,22 @@ function SketchbookContent() {
     setStrokes([]);
     setCurrentStroke([]);
     setShowQR(false);
+    setError(null);
   };
 
   const handleShare = async () => {
     const encoded = encodeStrokes(strokes);
     const url = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
+
+    const QR_CAPACITY = 3391;
+    if (url.length > QR_CAPACITY) {
+      setError(
+        `Drawing is too detailed (${url.length} chars, max ${QR_CAPACITY}). Try a simpler drawing.`,
+      );
+      return;
+    }
+
+    setError(null);
     setShareUrl(url);
     try {
       const qrDataUrl = await QRCode.toDataURL(url, {
@@ -49,6 +61,7 @@ function SketchbookContent() {
       setShowQR(true);
     } catch (err) {
       console.error("Failed to generate QR code:", err);
+      setError("Failed to generate QR code. Drawing may be too detailed.");
     }
   };
 
@@ -73,6 +86,12 @@ function SketchbookContent() {
             onStrokeComplete={handleStrokeComplete}
             onStrokeUpdate={setCurrentStroke}
           />
+
+          {error && (
+            <div className="mt-4 p-3 bg-red-100 text-red-700 rounded text-sm">
+              {error}
+            </div>
+          )}
 
           <div className="flex gap-2 mt-4">
             <button
