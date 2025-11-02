@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { LIMITS, STUN_SERVERS } from "../config/constants";
+import { STUN_SERVERS } from "../config/constants";
 import type { Message } from "./types";
 
 function encodeConnectionData(data: RTCSessionDescriptionInit): string {
@@ -10,6 +10,61 @@ function encodeConnectionData(data: RTCSessionDescriptionInit): string {
 function decodeConnectionData(encoded: string): RTCSessionDescriptionInit {
   const json = atob(encoded);
   return JSON.parse(json);
+}
+
+async function addIceCandidate(
+  roomCode: string,
+  candidate: RTCIceCandidate,
+  sender: "host" | "peer",
+): Promise<void> {
+  try {
+    const response = await fetch("/api/webrtc/add-ice-candidate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        roomCode,
+        candidate: JSON.stringify(candidate.toJSON()),
+        sender,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Failed to add ICE candidate:", await response.text());
+    }
+  } catch (error) {
+    console.error("Error adding ICE candidate:", error);
+  }
+}
+
+async function getIceCandidates(
+  roomCode: string,
+  sender: "host" | "peer",
+  since?: string,
+): Promise<Array<{ id: string; candidate: string; created_at: string }>> {
+  try {
+    const params = new URLSearchParams({
+      roomCode,
+      sender,
+    });
+    if (since) {
+      params.set("since", since);
+    }
+
+    const response = await fetch(
+      `/api/webrtc/get-ice-candidates?${params.toString()}`,
+    );
+
+    if (!response.ok) {
+      console.error("Failed to get ICE candidates:", await response.text());
+      return [];
+    }
+
+    const data = await response.json();
+    return data.candidates || [];
+  } catch (error) {
+    console.error("Error getting ICE candidates:", error);
+    return [];
+  }
 }
 
 export function useWebRTC(onMessage: (message: Message) => void) {
@@ -31,47 +86,30 @@ export function useWebRTC(onMessage: (message: Message) => void) {
   }, [roomCode, isInitiator]);
 
   const createPeerConnection = useCallback(() => {
+    console.log("Creating peer connection with ICE servers:", STUN_SERVERS);
     const pc = new RTCPeerConnection({
       iceServers: STUN_SERVERS,
       iceCandidatePoolSize: 10,
     });
-
-    let gatheringTimeout: NodeJS.Timeout;
-    let offerSent = false;
-
-    const sendOffer = () => {
-      if (!offerSent && pc.localDescription) {
-        offerSent = true;
-        clearTimeout(gatheringTimeout);
-        console.log("Sending offer with ICE candidates");
-        setLocalOffer(encodeConnectionData(pc.localDescription));
-      }
-    };
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         const type = event.candidate.type;
         const protocol = event.candidate.protocol;
         const address = event.candidate.address;
+        const role = isInitiatorRef.current ? "Offer" : "Answer";
         console.log(
-          `[Offer] ICE candidate: type=${type}, protocol=${protocol}, address=${address}`,
+          `[${role}] ICE candidate: type=${type}, protocol=${protocol}, address=${address}`,
         );
-      } else {
-        console.log("[Offer] All ICE candidates gathered (null candidate)");
-        sendOffer();
-      }
-    };
 
-    pc.onicegatheringstatechange = () => {
-      console.log("[Offer] ICE gathering state:", pc.iceGatheringState);
-      if (pc.iceGatheringState === "gathering") {
-        gatheringTimeout = setTimeout(() => {
-          console.log("[Offer] ICE gathering timeout reached");
-          sendOffer();
-        }, LIMITS.iceGatheringTimeout);
-      } else if (pc.iceGatheringState === "complete") {
-        console.log("[Offer] ICE gathering completed via state change");
-        sendOffer();
+        // Send candidate immediately to Supabase (Trickle ICE)
+        if (roomCodeRef.current) {
+          const sender = isInitiatorRef.current ? "host" : "peer";
+          addIceCandidate(roomCodeRef.current, event.candidate, sender);
+        }
+      } else {
+        const role = isInitiatorRef.current ? "Offer" : "Answer";
+        console.log(`[${role}] All ICE candidates gathered (null candidate)`);
       }
     };
 
@@ -135,8 +173,12 @@ export function useWebRTC(onMessage: (message: Message) => void) {
 
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    console.log("Local offer set, waiting for ICE candidates...");
+    console.log("Local offer set - sending immediately (Trickle ICE)");
 
+    // Send offer immediately, ICE candidates will be sent separately
+    if (pc.localDescription) {
+      setLocalOffer(encodeConnectionData(pc.localDescription));
+    }
     setIsInitiator(true);
   }, [createPeerConnection, setupDataChannel]);
 
@@ -147,48 +189,6 @@ export function useWebRTC(onMessage: (message: Message) => void) {
         const offer = decodeConnectionData(offerEncoded);
         const pc = createPeerConnection();
 
-        let gatheringTimeout: NodeJS.Timeout;
-        let answerSent = false;
-
-        const sendAnswer = () => {
-          if (!answerSent && pc.localDescription) {
-            answerSent = true;
-            clearTimeout(gatheringTimeout);
-            console.log("Sending answer with ICE candidates");
-            setRemoteAnswer(encodeConnectionData(pc.localDescription));
-          }
-        };
-
-        // Override the ICE handlers specifically for the answer side
-        pc.onicecandidate = (event) => {
-          if (event.candidate) {
-            const type = event.candidate.type;
-            const protocol = event.candidate.protocol;
-            const address = event.candidate.address;
-            console.log(
-              `[Answer] ICE candidate: type=${type}, protocol=${protocol}, address=${address}`,
-            );
-          } else {
-            console.log(
-              "[Answer] All ICE candidates gathered (null candidate)",
-            );
-            sendAnswer();
-          }
-        };
-
-        pc.onicegatheringstatechange = () => {
-          console.log("[Answer] ICE gathering state:", pc.iceGatheringState);
-          if (pc.iceGatheringState === "gathering") {
-            gatheringTimeout = setTimeout(() => {
-              console.log("[Answer] ICE gathering timeout reached");
-              sendAnswer();
-            }, LIMITS.iceGatheringTimeout);
-          } else if (pc.iceGatheringState === "complete") {
-            console.log("[Answer] ICE gathering completed via state change");
-            sendAnswer();
-          }
-        };
-
         pc.ondatachannel = (event) => {
           console.log("Data channel received!");
           setupDataChannel(event.channel);
@@ -198,8 +198,12 @@ export function useWebRTC(onMessage: (message: Message) => void) {
         console.log("Remote offer set");
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
-        console.log("Local answer set, waiting for ICE candidates...");
+        console.log("Local answer set - sending immediately (Trickle ICE)");
 
+        // Send answer immediately, ICE candidates will be sent separately
+        if (pc.localDescription) {
+          setRemoteAnswer(encodeConnectionData(pc.localDescription));
+        }
         setIsInitiator(false);
       } catch (error) {
         console.error("Failed to accept offer:", error);
@@ -248,6 +252,47 @@ export function useWebRTC(onMessage: (message: Message) => void) {
       acceptAnswer(remoteAnswer);
     }
   }, [remoteAnswer, isInitiator, acceptAnswer]);
+
+  // Poll for remote ICE candidates (Trickle ICE)
+  useEffect(() => {
+    if (!roomCode || !peerConnection.current) {
+      return;
+    }
+
+    const pc = peerConnection.current;
+    let lastFetchTime: string | undefined;
+
+    const fetchAndAddCandidates = async () => {
+      // Get remote candidates (we want the other peer's candidates)
+      const remoteSender = isInitiator ? "peer" : "host";
+      const candidates = await getIceCandidates(
+        roomCode,
+        remoteSender,
+        lastFetchTime,
+      );
+
+      for (const { candidate: candidateJson, created_at } of candidates) {
+        try {
+          const candidateInit = JSON.parse(candidateJson);
+          await pc.addIceCandidate(new RTCIceCandidate(candidateInit));
+          console.log(`Added remote ICE candidate: type=${candidateInit.type}`);
+          lastFetchTime = created_at;
+        } catch (error) {
+          console.error("Failed to add remote ICE candidate:", error);
+        }
+      }
+    };
+
+    // Start polling every 1 second
+    const pollInterval = setInterval(fetchAndAddCandidates, 1000);
+
+    // Fetch immediately on mount
+    fetchAndAddCandidates();
+
+    return () => {
+      clearInterval(pollInterval);
+    };
+  }, [roomCode, isInitiator]);
 
   // Cleanup room and connection only on final unmount
   useEffect(() => {

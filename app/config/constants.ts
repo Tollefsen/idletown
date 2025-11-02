@@ -19,7 +19,7 @@ export const ROUTES = {
 export const LIMITS = {
   qrCapacity: 3391,
   youtubePlayerTimeout: 3000,
-  iceGatheringTimeout: 10000, // Increased from 3s to 10s to allow TURN candidates
+  iceGatheringTimeout: 5000, // Reduced from 10s to 5s - relay candidates typically arrive within 2-3s if TURN works
 } as const;
 
 export const STUN_SERVERS: RTCIceServer[] = [

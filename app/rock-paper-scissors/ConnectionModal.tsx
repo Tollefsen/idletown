@@ -72,7 +72,15 @@ export function ConnectionModal({
 
       createRoom();
     }
-  }, [mode, localOffer, isInitiator, roomCode, isPublic, roomName]);
+  }, [
+    mode,
+    localOffer,
+    isInitiator,
+    roomCode,
+    isPublic,
+    roomName,
+    onSetRoomCode,
+  ]);
 
   // Poll for peer answer when hosting
   useEffect(() => {

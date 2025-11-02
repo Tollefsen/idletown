@@ -48,3 +48,29 @@ $$ LANGUAGE plpgsql;
 -- Optional: Create a scheduled job to run cleanup daily
 -- This requires the pg_cron extension to be enabled in Supabase
 -- SELECT cron.schedule('cleanup-expired-rooms', '0 0 * * *', 'SELECT cleanup_expired_rooms()');
+
+-- Create ICE candidates table for Trickle ICE
+CREATE TABLE IF NOT EXISTS webrtc_ice_candidates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_code TEXT NOT NULL REFERENCES webrtc_rooms(room_code) ON DELETE CASCADE,
+  candidate TEXT NOT NULL,
+  sender TEXT NOT NULL CHECK (sender IN ('host', 'peer')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create index for fast lookups
+CREATE INDEX IF NOT EXISTS idx_ice_room_code ON webrtc_ice_candidates(room_code);
+CREATE INDEX IF NOT EXISTS idx_ice_created_at ON webrtc_ice_candidates(created_at);
+
+-- Enable Row Level Security
+ALTER TABLE webrtc_ice_candidates ENABLE ROW LEVEL SECURITY;
+
+-- Allow anyone to insert ICE candidates
+CREATE POLICY "Anyone can create ICE candidates" ON webrtc_ice_candidates
+  FOR INSERT
+  WITH CHECK (true);
+
+-- Allow anyone to read ICE candidates
+CREATE POLICY "Anyone can read ICE candidates" ON webrtc_ice_candidates
+  FOR SELECT
+  USING (true);

@@ -84,7 +84,6 @@ export default function RockPaperScissors() {
     isConnected,
     isInitiator,
     localOffer,
-    roomCode,
     createOffer,
     acceptOffer,
     setRemoteAnswer,
