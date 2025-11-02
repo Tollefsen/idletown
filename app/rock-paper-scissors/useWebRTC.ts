@@ -21,6 +21,14 @@ export function useWebRTC(onMessage: (message: Message) => void) {
 
   const peerConnection = useRef<RTCPeerConnection | null>(null);
   const dataChannel = useRef<RTCDataChannel | null>(null);
+  const roomCodeRef = useRef(roomCode);
+  const isInitiatorRef = useRef(isInitiator);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    roomCodeRef.current = roomCode;
+    isInitiatorRef.current = isInitiator;
+  }, [roomCode, isInitiator]);
 
   const createPeerConnection = useCallback(() => {
     const pc = new RTCPeerConnection({
@@ -48,6 +56,7 @@ export function useWebRTC(onMessage: (message: Message) => void) {
     };
 
     pc.onconnectionstatechange = () => {
+      console.log("Connection state changed:", pc.connectionState);
       if (pc.connectionState === "connected") {
         setIsConnected(true);
       } else if (
@@ -59,6 +68,7 @@ export function useWebRTC(onMessage: (message: Message) => void) {
     };
 
     pc.oniceconnectionstatechange = () => {
+      console.log("ICE connection state changed:", pc.iceConnectionState);
       if (
         pc.iceConnectionState === "connected" ||
         pc.iceConnectionState === "completed"
@@ -74,10 +84,12 @@ export function useWebRTC(onMessage: (message: Message) => void) {
   const setupDataChannel = useCallback(
     (channel: RTCDataChannel) => {
       channel.onopen = () => {
+        console.log("Data channel opened!");
         setIsConnected(true);
       };
 
       channel.onclose = () => {
+        console.log("Data channel closed");
         setIsConnected(false);
       };
 
@@ -169,15 +181,11 @@ export function useWebRTC(onMessage: (message: Message) => void) {
 
   // Cleanup room and connection only on final unmount
   useEffect(() => {
-    const currentRoomCode = roomCode;
-    const currentIsInitiator = isInitiator;
-    const currentPeerConnection = peerConnection.current;
-
     return () => {
-      // Only cleanup on final unmount, not when dependencies change
-      if (currentRoomCode && currentIsInitiator) {
+      // Cleanup on unmount - use refs to get current values
+      if (roomCodeRef.current && isInitiatorRef.current) {
         // Delete the room from Supabase when host disconnects
-        fetch(`/api/webrtc/delete-room?roomCode=${currentRoomCode}`, {
+        fetch(`/api/webrtc/delete-room?roomCode=${roomCodeRef.current}`, {
           method: "DELETE",
         }).catch((err) => {
           console.error("Failed to delete room on cleanup:", err);
@@ -185,11 +193,11 @@ export function useWebRTC(onMessage: (message: Message) => void) {
       }
 
       // Close peer connection
-      if (currentPeerConnection) {
-        currentPeerConnection.close();
+      if (peerConnection.current) {
+        peerConnection.current.close();
       }
     };
-  }, []); // Empty deps - only run on mount/unmount
+  }, []); // Empty deps - only run cleanup on unmount
 
   return {
     isConnected,

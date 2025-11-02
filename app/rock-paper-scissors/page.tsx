@@ -147,7 +147,12 @@ export default function RockPaperScissors() {
 
   // Transition to choosing state when connected
   useEffect(() => {
+    console.log("Connection effect:", {
+      isConnected,
+      gameState: gameData.gameState,
+    });
     if (isConnected && gameData.gameState === "waiting") {
+      console.log("Transitioning to choosing state");
       setGameData((prev) => ({ ...prev, gameState: "choosing" }));
     }
   }, [isConnected, gameData.gameState]);
