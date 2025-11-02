@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface ConnectionModalProps {
   isOpen: boolean;
@@ -23,31 +23,162 @@ export function ConnectionModal({
 }: ConnectionModalProps) {
   const [inputValue, setInputValue] = useState("");
   const [mode, setMode] = useState<"none" | "host" | "join">("none");
+  const [roomCode, setRoomCode] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>("");
+  const [pendingJoinRoomCode, setPendingJoinRoomCode] = useState<string>("");
+
+  // Create room on Supabase when hosting
+  useEffect(() => {
+    if (mode === "host" && localOffer && isInitiator && !roomCode) {
+      const createRoom = async () => {
+        setIsLoading(true);
+        setError("");
+
+        try {
+          const response = await fetch("/api/webrtc/create-room", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ offer: localOffer }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to create room");
+          }
+
+          const data = await response.json();
+          setRoomCode(data.roomCode);
+        } catch (err) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Failed to create room. Please try again.",
+          );
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      createRoom();
+    }
+  }, [mode, localOffer, isInitiator, roomCode]);
+
+  // Poll for peer answer when hosting
+  useEffect(() => {
+    if (mode !== "host" || !roomCode || !isInitiator) return;
+
+    const pollForAnswer = async () => {
+      try {
+        const response = await fetch(
+          `/api/webrtc/get-answer?roomCode=${roomCode}`,
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.answer) {
+            onSetAnswer(data.answer);
+            onClose();
+          }
+        }
+      } catch (err) {
+        console.error("Error polling for answer:", err);
+      }
+    };
+
+    const interval = setInterval(pollForAnswer, 2000);
+    return () => clearInterval(interval);
+  }, [mode, roomCode, isInitiator, onSetAnswer, onClose]);
+
+  // Send answer to Supabase when joining and localOffer is ready
+  useEffect(() => {
+    if (mode === "join" && localOffer && pendingJoinRoomCode && !isInitiator) {
+      const sendAnswer = async () => {
+        try {
+          await fetch("/api/webrtc/join-room", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              roomCode: pendingJoinRoomCode,
+              answer: localOffer,
+            }),
+          });
+
+          setPendingJoinRoomCode("");
+          setIsLoading(false);
+          onClose();
+        } catch (_err) {
+          setError("Failed to send answer. Connection may still work.");
+          setIsLoading(false);
+        }
+      };
+
+      sendAnswer();
+    }
+  }, [mode, localOffer, pendingJoinRoomCode, isInitiator, onClose]);
+
+  // Clean up when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setInputValue("");
+      setRoomCode("");
+      setError("");
+      setIsLoading(false);
+      setPendingJoinRoomCode("");
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(localOffer);
+  const handleCopyRoomCode = () => {
+    navigator.clipboard.writeText(roomCode);
   };
 
   const handleHostGame = () => {
     setMode("host");
+    setError("");
     onCreateOffer();
   };
 
   const handleJoinGame = () => {
     setMode("join");
+    setError("");
   };
 
-  const handleAcceptOffer = () => {
-    onAcceptOffer(inputValue);
-    setInputValue("");
-  };
+  const handleJoinRoom = async () => {
+    if (!inputValue.trim()) {
+      setError("Please enter a room code");
+      return;
+    }
 
-  const handleSetAnswer = () => {
-    onSetAnswer(inputValue);
-    setInputValue("");
-    onClose();
+    setIsLoading(true);
+    setError("");
+
+    try {
+      // Fetch the host's offer from the room
+      const response = await fetch(
+        `/api/webrtc/get-offer?roomCode=${inputValue.toUpperCase()}`,
+      );
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Room not found");
+      }
+
+      const data = await response.json();
+
+      // Accept the offer which will trigger localOffer generation
+      onAcceptOffer(data.offer);
+
+      // Store the room code to send answer once localOffer is ready
+      setPendingJoinRoomCode(inputValue.toUpperCase());
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to join room. Please try again.",
+      );
+      setIsLoading(false);
+    }
   };
 
   const handleOfflineMode = () => {
@@ -62,6 +193,12 @@ export function ConnectionModal({
           Connect to Peer
         </h2>
 
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-800 rounded">
+            {error}
+          </div>
+        )}
+
         {mode === "none" && (
           <div className="space-y-4">
             <button
@@ -75,6 +212,7 @@ export function ConnectionModal({
               type="button"
               onClick={handleHostGame}
               className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+              disabled={isLoading}
             >
               Host Game
             </button>
@@ -88,59 +226,41 @@ export function ConnectionModal({
           </div>
         )}
 
-        {mode === "host" && !localOffer && (
-          <div className="text-gray-700">Generating connection code...</div>
+        {mode === "host" && !roomCode && (
+          <div className="text-gray-700 text-center py-4">
+            {isLoading ? "Creating room..." : "Generating connection..."}
+          </div>
         )}
 
-        {mode === "host" && localOffer && !isInitiator && (
-          <div className="text-gray-700">Setting up connection...</div>
-        )}
-
-        {mode === "host" && localOffer && isInitiator && (
+        {mode === "host" && roomCode && (
           <div className="space-y-4">
-            <div>
-              <label
-                htmlFor="offer-code"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Share this code with your peer:
-              </label>
-              <textarea
-                id="offer-code"
-                readOnly
-                value={localOffer}
-                className="w-full p-2 border rounded font-mono text-xs h-32 text-gray-900 bg-gray-50"
-              />
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+              <div className="block text-sm font-medium text-gray-700 mb-2">
+                Share this room code with your friend:
+              </div>
+              <div className="bg-white border-2 border-blue-400 rounded-lg p-4 mb-3">
+                <div className="text-4xl font-bold text-blue-600 tracking-wider font-mono">
+                  {roomCode}
+                </div>
+              </div>
               <button
                 type="button"
-                onClick={handleCopy}
-                className="mt-2 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
+                onClick={handleCopyRoomCode}
+                className="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors"
               >
-                Copy Code
+                Copy Room Code
               </button>
             </div>
 
-            <div>
-              <label
-                htmlFor="answer-code"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Paste their response code here:
-              </label>
-              <textarea
-                id="answer-code"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                className="w-full p-2 border rounded font-mono text-xs h-32 text-gray-900"
-                placeholder="Paste answer code here..."
-              />
-              <button
-                type="button"
-                onClick={handleSetAnswer}
-                className="mt-2 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition-colors"
-              >
-                Connect
-              </button>
+            <div className="text-center text-gray-600">
+              <p className="text-sm">Waiting for peer to join...</p>
+              <div className="mt-2 flex justify-center">
+                <div className="animate-pulse flex space-x-2">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full" />
+                  <div className="w-2 h-2 bg-blue-600 rounded-full" />
+                  <div className="w-2 h-2 bg-blue-600 rounded-full" />
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -149,72 +269,46 @@ export function ConnectionModal({
           <div className="space-y-4">
             <div>
               <label
-                htmlFor="host-code"
+                htmlFor="room-code-input"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Paste host's code here:
+                Enter the host's room code:
               </label>
-              <textarea
-                id="host-code"
+              <input
+                id="room-code-input"
+                type="text"
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                className="w-full p-2 border rounded font-mono text-xs h-32 text-gray-900"
-                placeholder="Paste offer code here..."
+                onChange={(e) =>
+                  setInputValue(e.target.value.toUpperCase().trim())
+                }
+                className="w-full p-3 border-2 rounded-lg font-mono text-2xl text-center text-gray-900 uppercase tracking-wider"
+                placeholder="ABC123"
+                maxLength={6}
+                disabled={isLoading}
               />
-              <button
-                type="button"
-                onClick={handleAcceptOffer}
-                className="mt-2 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
-              >
-                Generate Response Code
-              </button>
             </div>
-
-            {localOffer && (
-              <div>
-                <label
-                  htmlFor="response-code"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Share this response code with the host:
-                </label>
-                <textarea
-                  id="response-code"
-                  readOnly
-                  value={localOffer}
-                  className="w-full p-2 border rounded font-mono text-xs h-32 text-gray-900 bg-gray-50"
-                />
-                <div className="flex gap-2 mt-2">
-                  <button
-                    type="button"
-                    onClick={handleCopy}
-                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
-                  >
-                    Copy Code
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="flex-1 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition-colors"
-                  >
-                    Done
-                  </button>
-                </div>
-                <p className="text-sm text-gray-600 mt-2">
-                  Connection will complete automatically once the host enters
-                  your code.
-                </p>
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={handleJoinRoom}
+              className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              disabled={isLoading || !inputValue.trim()}
+            >
+              {isLoading ? "Joining..." : "Join Game"}
+            </button>
           </div>
         )}
 
         <button
           type="button"
-          onClick={onClose}
+          onClick={() => {
+            setMode("none");
+            setRoomCode("");
+            setError("");
+            setInputValue("");
+          }}
           className="mt-6 w-full bg-gray-300 text-gray-800 py-2 px-4 rounded hover:bg-gray-400 transition-colors"
         >
-          Close
+          {mode === "none" ? "Close" : "Back"}
         </button>
       </div>
     </div>
