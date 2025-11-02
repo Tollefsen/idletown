@@ -19,26 +19,22 @@ export const ROUTES = {
 export const LIMITS = {
   qrCapacity: 3391,
   youtubePlayerTimeout: 3000,
-  iceGatheringTimeout: 3000,
+  iceGatheringTimeout: 10000, // Increased from 3s to 10s to allow TURN candidates
 } as const;
 
 export const STUN_SERVERS: RTCIceServer[] = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
-  // Free TURN server from metered.ca (limited usage)
+  { urls: "stun:stun2.l.google.com:19302" },
+  // Free TURN servers from metered.ca (limited usage)
   // For production, replace with your own TURN server
   {
-    urls: "turn:openrelay.metered.ca:80",
-    username: "openrelayproject",
-    credential: "openrelayproject",
-  },
-  {
-    urls: "turn:openrelay.metered.ca:443",
-    username: "openrelayproject",
-    credential: "openrelayproject",
-  },
-  {
-    urls: "turn:openrelay.metered.ca:443?transport=tcp",
+    urls: [
+      "turn:openrelay.metered.ca:80",
+      "turn:openrelay.metered.ca:80?transport=tcp",
+      "turn:openrelay.metered.ca:443",
+      "turn:openrelay.metered.ca:443?transport=tcp",
+    ],
     username: "openrelayproject",
     credential: "openrelayproject",
   },

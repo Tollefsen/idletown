@@ -37,13 +37,22 @@ export function useWebRTC(onMessage: (message: Message) => void) {
     });
 
     let gatheringTimeout: NodeJS.Timeout;
+    let offerSent = false;
+
+    const sendOffer = () => {
+      if (!offerSent && pc.localDescription) {
+        offerSent = true;
+        clearTimeout(gatheringTimeout);
+        console.log("Sending offer with ICE candidates");
+        setLocalOffer(encodeConnectionData(pc.localDescription));
+      }
+    };
 
     pc.onicecandidate = (event) => {
       console.log("ICE candidate:", event.candidate);
-      if (!event.candidate && pc.localDescription) {
-        clearTimeout(gatheringTimeout);
-        console.log("All ICE candidates gathered");
-        setLocalOffer(encodeConnectionData(pc.localDescription));
+      if (!event.candidate) {
+        console.log("All ICE candidates gathered (null candidate)");
+        sendOffer();
       }
     };
 
@@ -52,10 +61,11 @@ export function useWebRTC(onMessage: (message: Message) => void) {
       if (pc.iceGatheringState === "gathering") {
         gatheringTimeout = setTimeout(() => {
           console.log("ICE gathering timeout reached");
-          if (pc.localDescription) {
-            setLocalOffer(encodeConnectionData(pc.localDescription));
-          }
+          sendOffer();
         }, LIMITS.iceGatheringTimeout);
+      } else if (pc.iceGatheringState === "complete") {
+        console.log("ICE gathering completed via state change");
+        sendOffer();
       }
     };
 
