@@ -21,3 +21,11 @@ export interface ConnectionState {
   isInitiator: boolean;
   peerId: string | null;
 }
+
+export interface PublicRoom {
+  id: string;
+  room_code: string;
+  room_name: string;
+  created_at: string;
+  status: string;
+}
