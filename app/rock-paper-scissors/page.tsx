@@ -145,11 +145,12 @@ export default function RockPaperScissors() {
     }
   }, [isOfflineMode, sendMessage]);
 
-  const handleConnect = useCallback(() => {
-    if (isConnected) {
+  // Transition to choosing state when connected
+  useEffect(() => {
+    if (isConnected && gameData.gameState === "waiting") {
       setGameData((prev) => ({ ...prev, gameState: "choosing" }));
     }
-  }, [isConnected]);
+  }, [isConnected, gameData.gameState]);
 
   const handleStartOfflineMode = useCallback(() => {
     setIsOfflineMode(true);
@@ -216,12 +217,6 @@ export default function RockPaperScissors() {
       sendAnswer();
     }
   }, [localOffer, isInitiator]);
-
-  useEffect(() => {
-    if (isConnected && gameData.gameState === "waiting") {
-      handleConnect();
-    }
-  }, [isConnected, gameData.gameState, handleConnect]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
