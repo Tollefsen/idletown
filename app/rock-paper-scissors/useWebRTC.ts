@@ -39,15 +39,19 @@ export function useWebRTC(onMessage: (message: Message) => void) {
     let gatheringTimeout: NodeJS.Timeout;
 
     pc.onicecandidate = (event) => {
+      console.log("ICE candidate:", event.candidate);
       if (!event.candidate && pc.localDescription) {
         clearTimeout(gatheringTimeout);
+        console.log("All ICE candidates gathered");
         setLocalOffer(encodeConnectionData(pc.localDescription));
       }
     };
 
     pc.onicegatheringstatechange = () => {
+      console.log("ICE gathering state:", pc.iceGatheringState);
       if (pc.iceGatheringState === "gathering") {
         gatheringTimeout = setTimeout(() => {
+          console.log("ICE gathering timeout reached");
           if (pc.localDescription) {
             setLocalOffer(encodeConnectionData(pc.localDescription));
           }
@@ -108,12 +112,14 @@ export function useWebRTC(onMessage: (message: Message) => void) {
   );
 
   const createOffer = useCallback(async () => {
+    console.log("Creating offer...");
     const pc = createPeerConnection();
     const channel = pc.createDataChannel("game");
     setupDataChannel(channel);
 
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
+    console.log("Local offer set, waiting for ICE candidates...");
 
     setIsInitiator(true);
   }, [createPeerConnection, setupDataChannel]);
@@ -121,16 +127,20 @@ export function useWebRTC(onMessage: (message: Message) => void) {
   const acceptOffer = useCallback(
     async (offerEncoded: string) => {
       try {
+        console.log("Accepting offer...");
         const offer = decodeConnectionData(offerEncoded);
         const pc = createPeerConnection();
 
         pc.ondatachannel = (event) => {
+          console.log("Data channel received!");
           setupDataChannel(event.channel);
         };
 
         await pc.setRemoteDescription(offer);
+        console.log("Remote offer set");
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
+        console.log("Local answer set, waiting for ICE candidates...");
 
         setIsInitiator(false);
       } catch (error) {
@@ -143,6 +153,7 @@ export function useWebRTC(onMessage: (message: Message) => void) {
 
   const acceptAnswer = useCallback(async (answerEncoded: string) => {
     try {
+      console.log("Accepting answer...");
       const answer = decodeConnectionData(answerEncoded);
       const pc = peerConnection.current;
 
@@ -157,6 +168,7 @@ export function useWebRTC(onMessage: (message: Message) => void) {
       }
 
       await pc.setRemoteDescription(answer);
+      console.log("Remote answer set, connection should establish...");
     } catch (error) {
       console.error("Failed to accept answer:", error);
     }
