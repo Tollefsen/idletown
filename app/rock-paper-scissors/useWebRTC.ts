@@ -49,22 +49,28 @@ export function useWebRTC(onMessage: (message: Message) => void) {
     };
 
     pc.onicecandidate = (event) => {
-      console.log("ICE candidate:", event.candidate);
-      if (!event.candidate) {
-        console.log("All ICE candidates gathered (null candidate)");
+      if (event.candidate) {
+        const type = event.candidate.type;
+        const protocol = event.candidate.protocol;
+        const address = event.candidate.address;
+        console.log(
+          `[Offer] ICE candidate: type=${type}, protocol=${protocol}, address=${address}`,
+        );
+      } else {
+        console.log("[Offer] All ICE candidates gathered (null candidate)");
         sendOffer();
       }
     };
 
     pc.onicegatheringstatechange = () => {
-      console.log("ICE gathering state:", pc.iceGatheringState);
+      console.log("[Offer] ICE gathering state:", pc.iceGatheringState);
       if (pc.iceGatheringState === "gathering") {
         gatheringTimeout = setTimeout(() => {
-          console.log("ICE gathering timeout reached");
+          console.log("[Offer] ICE gathering timeout reached");
           sendOffer();
         }, LIMITS.iceGatheringTimeout);
       } else if (pc.iceGatheringState === "complete") {
-        console.log("ICE gathering completed via state change");
+        console.log("[Offer] ICE gathering completed via state change");
         sendOffer();
       }
     };
@@ -140,6 +146,48 @@ export function useWebRTC(onMessage: (message: Message) => void) {
         console.log("Accepting offer...");
         const offer = decodeConnectionData(offerEncoded);
         const pc = createPeerConnection();
+
+        let gatheringTimeout: NodeJS.Timeout;
+        let answerSent = false;
+
+        const sendAnswer = () => {
+          if (!answerSent && pc.localDescription) {
+            answerSent = true;
+            clearTimeout(gatheringTimeout);
+            console.log("Sending answer with ICE candidates");
+            setRemoteAnswer(encodeConnectionData(pc.localDescription));
+          }
+        };
+
+        // Override the ICE handlers specifically for the answer side
+        pc.onicecandidate = (event) => {
+          if (event.candidate) {
+            const type = event.candidate.type;
+            const protocol = event.candidate.protocol;
+            const address = event.candidate.address;
+            console.log(
+              `[Answer] ICE candidate: type=${type}, protocol=${protocol}, address=${address}`,
+            );
+          } else {
+            console.log(
+              "[Answer] All ICE candidates gathered (null candidate)",
+            );
+            sendAnswer();
+          }
+        };
+
+        pc.onicegatheringstatechange = () => {
+          console.log("[Answer] ICE gathering state:", pc.iceGatheringState);
+          if (pc.iceGatheringState === "gathering") {
+            gatheringTimeout = setTimeout(() => {
+              console.log("[Answer] ICE gathering timeout reached");
+              sendAnswer();
+            }, LIMITS.iceGatheringTimeout);
+          } else if (pc.iceGatheringState === "complete") {
+            console.log("[Answer] ICE gathering completed via state change");
+            sendAnswer();
+          }
+        };
 
         pc.ondatachannel = (event) => {
           console.log("Data channel received!");

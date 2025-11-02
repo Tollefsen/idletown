@@ -26,8 +26,8 @@ export const STUN_SERVERS: RTCIceServer[] = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
   { urls: "stun:stun2.l.google.com:19302" },
-  // Free TURN servers from metered.ca (limited usage)
-  // For production, replace with your own TURN server
+  // Multiple free TURN server options
+  // Note: For production, replace with your own TURN server for reliability
   {
     urls: [
       "turn:openrelay.metered.ca:80",
@@ -37,6 +37,23 @@ export const STUN_SERVERS: RTCIceServer[] = [
     ],
     username: "openrelayproject",
     credential: "openrelayproject",
+  },
+  // Alternative free TURN server from Numb
+  {
+    urls: "turn:numb.viagenie.ca",
+    username: "webrtc@live.com",
+    credential: "muazkh",
+  },
+  // Alternative free TURN servers
+  {
+    urls: [
+      "turn:a.relay.metered.ca:80",
+      "turn:a.relay.metered.ca:80?transport=tcp",
+      "turn:a.relay.metered.ca:443",
+      "turn:a.relay.metered.ca:443?transport=tcp",
+    ],
+    username: "987eff4e1f350cdd4541d5eb",
+    credential: "uBDaNB6+xbDYFwBP",
   },
 ];
 
