@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BackLink } from "../components/BackLink";
 import { Button } from "../components/Button";
 import { ConnectionModal } from "./ConnectionModal";
@@ -42,6 +42,9 @@ export default function RockPaperScissors() {
     gameState: "waiting",
     roundWinner: null,
   });
+
+  // Track pending room code for public room joins
+  const pendingPublicRoomCode = useRef<string | null>(null);
 
   const handleMessage = useCallback((message: Message) => {
     if (message.type === "choice") {
@@ -174,6 +177,11 @@ export default function RockPaperScissors() {
         }
 
         const data = await response.json();
+
+        // Store the room code in ref so we can send answer later
+        pendingPublicRoomCode.current = roomCode;
+
+        // Accept the offer - this will generate our answer
         acceptOffer(data.offer);
       } catch (err) {
         console.error("Error joining room:", err);
@@ -181,6 +189,31 @@ export default function RockPaperScissors() {
     },
     [acceptOffer],
   );
+
+  // Effect to send answer to Supabase when joining a public room
+  useEffect(() => {
+    if (pendingPublicRoomCode.current && localOffer && !isInitiator) {
+      const sendAnswer = async () => {
+        const roomCode = pendingPublicRoomCode.current;
+        pendingPublicRoomCode.current = null;
+
+        try {
+          await fetch("/api/webrtc/join-room", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              roomCode,
+              answer: localOffer,
+            }),
+          });
+        } catch (err) {
+          console.error("Failed to send answer:", err);
+        }
+      };
+
+      sendAnswer();
+    }
+  }, [localOffer, isInitiator]);
 
   useEffect(() => {
     if (isConnected && gameData.gameState === "waiting") {
