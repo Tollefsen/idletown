@@ -132,7 +132,19 @@ export function useWebRTC(onMessage: (message: Message) => void) {
   const acceptAnswer = useCallback(async (answerEncoded: string) => {
     try {
       const answer = decodeConnectionData(answerEncoded);
-      await peerConnection.current?.setRemoteDescription(answer);
+      const pc = peerConnection.current;
+
+      if (!pc) {
+        console.error("No peer connection available");
+        return;
+      }
+
+      if (pc.signalingState === "closed") {
+        console.error("Peer connection is closed");
+        return;
+      }
+
+      await pc.setRemoteDescription(answer);
     } catch (error) {
       console.error("Failed to accept answer:", error);
     }
@@ -155,12 +167,17 @@ export function useWebRTC(onMessage: (message: Message) => void) {
     }
   }, [remoteAnswer, isInitiator, acceptAnswer]);
 
-  // Cleanup room when host leaves
+  // Cleanup room and connection only on final unmount
   useEffect(() => {
+    const currentRoomCode = roomCode;
+    const currentIsInitiator = isInitiator;
+    const currentPeerConnection = peerConnection.current;
+
     return () => {
-      if (roomCode && isInitiator) {
+      // Only cleanup on final unmount, not when dependencies change
+      if (currentRoomCode && currentIsInitiator) {
         // Delete the room from Supabase when host disconnects
-        fetch(`/api/webrtc/delete-room?roomCode=${roomCode}`, {
+        fetch(`/api/webrtc/delete-room?roomCode=${currentRoomCode}`, {
           method: "DELETE",
         }).catch((err) => {
           console.error("Failed to delete room on cleanup:", err);
@@ -168,11 +185,11 @@ export function useWebRTC(onMessage: (message: Message) => void) {
       }
 
       // Close peer connection
-      if (peerConnection.current) {
-        peerConnection.current.close();
+      if (currentPeerConnection) {
+        currentPeerConnection.close();
       }
     };
-  }, [roomCode, isInitiator]);
+  }, []); // Empty deps - only run on mount/unmount
 
   return {
     isConnected,
