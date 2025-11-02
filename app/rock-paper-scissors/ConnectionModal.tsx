@@ -10,6 +10,7 @@ interface ConnectionModalProps {
   onSetAnswer: (answer: string) => void;
   onStartOfflineMode: () => void;
   onOpenWaitingRoom: () => void;
+  onSetRoomCode: (roomCode: string) => void;
 }
 
 export function ConnectionModal({
@@ -22,6 +23,7 @@ export function ConnectionModal({
   onSetAnswer,
   onStartOfflineMode,
   onOpenWaitingRoom,
+  onSetRoomCode,
 }: ConnectionModalProps) {
   const [inputValue, setInputValue] = useState("");
   const [mode, setMode] = useState<"none" | "host" | "join">("none");
@@ -56,6 +58,7 @@ export function ConnectionModal({
 
           const data = await response.json();
           setRoomCode(data.roomCode);
+          onSetRoomCode(data.roomCode);
         } catch (err) {
           setError(
             err instanceof Error

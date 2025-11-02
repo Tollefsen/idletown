@@ -17,6 +17,7 @@ export function useWebRTC(onMessage: (message: Message) => void) {
   const [isInitiator, setIsInitiator] = useState(false);
   const [localOffer, setLocalOffer] = useState<string>("");
   const [remoteAnswer, setRemoteAnswer] = useState<string>("");
+  const [roomCode, setRoomCode] = useState<string>("");
 
   const peerConnection = useRef<RTCPeerConnection | null>(null);
   const dataChannel = useRef<RTCDataChannel | null>(null);
@@ -154,13 +155,34 @@ export function useWebRTC(onMessage: (message: Message) => void) {
     }
   }, [remoteAnswer, isInitiator, acceptAnswer]);
 
+  // Cleanup room when host leaves
+  useEffect(() => {
+    return () => {
+      if (roomCode && isInitiator) {
+        // Delete the room from Supabase when host disconnects
+        fetch(`/api/webrtc/delete-room?roomCode=${roomCode}`, {
+          method: "DELETE",
+        }).catch((err) => {
+          console.error("Failed to delete room on cleanup:", err);
+        });
+      }
+
+      // Close peer connection
+      if (peerConnection.current) {
+        peerConnection.current.close();
+      }
+    };
+  }, [roomCode, isInitiator]);
+
   return {
     isConnected,
     isInitiator,
     localOffer,
+    roomCode,
     createOffer,
     acceptOffer,
     setRemoteAnswer,
+    setRoomCode,
     sendMessage,
   };
 }

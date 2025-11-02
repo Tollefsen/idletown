@@ -118,6 +118,8 @@ class MockRTCPeerConnection extends EventTarget {
     },
   );
 
+  close = vi.fn();
+
   simulateIceCandidate(candidate: RTCIceCandidate | null = null) {
     const event = new RTCPeerConnectionIceEvent("icecandidate", { candidate });
     if (this.onicecandidate) {

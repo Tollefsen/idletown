@@ -84,9 +84,11 @@ export default function RockPaperScissors() {
     isConnected,
     isInitiator,
     localOffer,
+    roomCode,
     createOffer,
     acceptOffer,
     setRemoteAnswer,
+    setRoomCode,
     sendMessage,
   } = useWebRTC(handleMessage);
 
@@ -270,6 +272,7 @@ export default function RockPaperScissors() {
         onSetAnswer={setRemoteAnswer}
         onStartOfflineMode={handleStartOfflineMode}
         onOpenWaitingRoom={() => setShowWaitingRoom(true)}
+        onSetRoomCode={setRoomCode}
       />
 
       <WaitingRoom
