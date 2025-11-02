@@ -17,10 +17,25 @@ export async function POST(request: Request) {
       process.env.SUPABASE_ANON_KEY ?? "",
     );
 
-    const { offer } = await request.json();
+    const {
+      offer,
+      isPublic = false,
+      roomName = "Game Room",
+    } = await request.json();
 
     if (!offer || typeof offer !== "string") {
       return NextResponse.json({ error: "Invalid offer" }, { status: 400 });
+    }
+
+    if (typeof isPublic !== "boolean") {
+      return NextResponse.json(
+        { error: "Invalid isPublic value" },
+        { status: 400 },
+      );
+    }
+
+    if (typeof roomName !== "string" || roomName.trim().length === 0) {
+      return NextResponse.json({ error: "Invalid room name" }, { status: 400 });
     }
 
     let roomCode: string;
@@ -37,6 +52,8 @@ export async function POST(request: Request) {
         .insert({
           room_code: roomCode,
           host_offer: offer,
+          room_name: roomName.trim(),
+          is_public: isPublic,
           status: "waiting",
         })
         .select()

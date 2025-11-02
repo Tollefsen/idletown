@@ -7,6 +7,7 @@ import { ConnectionModal } from "./ConnectionModal";
 import { GameBoard } from "./GameBoard";
 import type { Choice, GameData, Message } from "./types";
 import { useWebRTC } from "./useWebRTC";
+import { WaitingRoom } from "./WaitingRoom";
 
 function determineWinner(
   myChoice: Choice,
@@ -31,6 +32,7 @@ function getComputerChoice(): Exclude<Choice, null> {
 
 export default function RockPaperScissors() {
   const [showConnectionModal, setShowConnectionModal] = useState(false);
+  const [showWaitingRoom, setShowWaitingRoom] = useState(false);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [gameData, setGameData] = useState<GameData>({
     myChoice: null,
@@ -156,6 +158,30 @@ export default function RockPaperScissors() {
     });
   }, []);
 
+  const handleJoinPublicRoom = useCallback(
+    async (roomCode: string) => {
+      setShowWaitingRoom(false);
+
+      try {
+        // Fetch the host's offer from the room
+        const response = await fetch(
+          `/api/webrtc/get-offer?roomCode=${roomCode}`,
+        );
+
+        if (!response.ok) {
+          console.error("Failed to get room offer");
+          return;
+        }
+
+        const data = await response.json();
+        acceptOffer(data.offer);
+      } catch (err) {
+        console.error("Error joining room:", err);
+      }
+    },
+    [acceptOffer],
+  );
+
   useEffect(() => {
     if (isConnected && gameData.gameState === "waiting") {
       handleConnect();
@@ -210,6 +236,13 @@ export default function RockPaperScissors() {
         onAcceptOffer={acceptOffer}
         onSetAnswer={setRemoteAnswer}
         onStartOfflineMode={handleStartOfflineMode}
+        onOpenWaitingRoom={() => setShowWaitingRoom(true)}
+      />
+
+      <WaitingRoom
+        isOpen={showWaitingRoom}
+        onClose={() => setShowWaitingRoom(false)}
+        onJoinRoom={handleJoinPublicRoom}
       />
     </div>
   );

@@ -5,8 +5,10 @@
 CREATE TABLE IF NOT EXISTS webrtc_rooms (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   room_code TEXT UNIQUE NOT NULL,
+  room_name TEXT NOT NULL DEFAULT 'Game Room',
   host_offer TEXT NOT NULL,
   peer_answer TEXT,
+  is_public BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   expires_at TIMESTAMP WITH TIME ZONE DEFAULT (NOW() + INTERVAL '1 hour'),
   status TEXT NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting', 'connected', 'expired'))

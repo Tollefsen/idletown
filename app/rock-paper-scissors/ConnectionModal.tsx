@@ -9,6 +9,7 @@ interface ConnectionModalProps {
   onAcceptOffer: (offer: string) => void;
   onSetAnswer: (answer: string) => void;
   onStartOfflineMode: () => void;
+  onOpenWaitingRoom: () => void;
 }
 
 export function ConnectionModal({
@@ -20,6 +21,7 @@ export function ConnectionModal({
   onAcceptOffer,
   onSetAnswer,
   onStartOfflineMode,
+  onOpenWaitingRoom,
 }: ConnectionModalProps) {
   const [inputValue, setInputValue] = useState("");
   const [mode, setMode] = useState<"none" | "host" | "join">("none");
@@ -27,6 +29,8 @@ export function ConnectionModal({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [pendingJoinRoomCode, setPendingJoinRoomCode] = useState<string>("");
+  const [isPublic, setIsPublic] = useState(false);
+  const [roomName, setRoomName] = useState("");
 
   // Create room on Supabase when hosting
   useEffect(() => {
@@ -39,7 +43,11 @@ export function ConnectionModal({
           const response = await fetch("/api/webrtc/create-room", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ offer: localOffer }),
+            body: JSON.stringify({
+              offer: localOffer,
+              isPublic,
+              roomName: roomName || "Game Room",
+            }),
           });
 
           if (!response.ok) {
@@ -61,7 +69,7 @@ export function ConnectionModal({
 
       createRoom();
     }
-  }, [mode, localOffer, isInitiator, roomCode]);
+  }, [mode, localOffer, isInitiator, roomCode, isPublic, roomName]);
 
   // Poll for peer answer when hosting
   useEffect(() => {
@@ -124,6 +132,8 @@ export function ConnectionModal({
       setError("");
       setIsLoading(false);
       setPendingJoinRoomCode("");
+      setIsPublic(false);
+      setRoomName("");
     }
   }, [isOpen]);
 
@@ -136,6 +146,13 @@ export function ConnectionModal({
   const handleHostGame = () => {
     setMode("host");
     setError("");
+  };
+
+  const handleStartHosting = () => {
+    if (isPublic && !roomName.trim()) {
+      setError("Please enter a room name for public rooms");
+      return;
+    }
     onCreateOffer();
   };
 
@@ -186,6 +203,11 @@ export function ConnectionModal({
     onClose();
   };
 
+  const handleBrowsePublicRooms = () => {
+    onClose();
+    onOpenWaitingRoom();
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
@@ -210,6 +232,13 @@ export function ConnectionModal({
             </button>
             <button
               type="button"
+              onClick={handleBrowsePublicRooms}
+              className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Browse Public Rooms
+            </button>
+            <button
+              type="button"
               onClick={handleHostGame}
               className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors"
               disabled={isLoading}
@@ -219,14 +248,58 @@ export function ConnectionModal({
             <button
               type="button"
               onClick={handleJoinGame}
-              className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors"
+              className="w-full bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors"
             >
-              Join Game
+              Join with Room Code
             </button>
           </div>
         )}
 
-        {mode === "host" && !roomCode && (
+        {mode === "host" && !roomCode && !localOffer && (
+          <div className="space-y-4">
+            <div>
+              <label
+                htmlFor="room-name-input"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Room Name (optional):
+              </label>
+              <input
+                id="room-name-input"
+                type="text"
+                value={roomName}
+                onChange={(e) => setRoomName(e.target.value)}
+                className="w-full p-3 border-2 rounded-lg text-gray-900"
+                placeholder="My Game Room"
+                maxLength={50}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                id="public-checkbox"
+                type="checkbox"
+                checked={isPublic}
+                onChange={(e) => setIsPublic(e.target.checked)}
+                className="w-4 h-4 text-blue-600 rounded"
+              />
+              <label
+                htmlFor="public-checkbox"
+                className="text-sm text-gray-700"
+              >
+                Make this a public room (visible in waiting room)
+              </label>
+            </div>
+            <button
+              type="button"
+              onClick={handleStartHosting}
+              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Create Room
+            </button>
+          </div>
+        )}
+
+        {mode === "host" && !roomCode && localOffer && (
           <div className="text-gray-700 text-center py-4">
             {isLoading ? "Creating room..." : "Generating connection..."}
           </div>
