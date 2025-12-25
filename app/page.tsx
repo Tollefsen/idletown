@@ -55,13 +55,19 @@ export default function Home() {
               Rock Paper Scissors
             </Link>
             <a
-              href={ROUTES.sanghefte}
+              href={ROUTES.sanghefte1}
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-12 px-6"
             >
-              Sanghefte ↗
+              Sanghefte 1.0 ↗
             </a>
+            <Link
+              href={ROUTES.sanghefte2}
+              className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-12 px-6"
+            >
+              Sanghefte 2.0
+            </Link>
           </div>
         </div>
       </main>

@@ -1,8 +1,7 @@
 export const SITE = {
   name: "Idle Town",
   url: "https://idle.town",
-  description:
-    "A space where small projects come to idle. Play games, flip coins, and track time with custom calendars.",
+  description: "A space where small projects come to idle.",
 } as const;
 
 export const ROUTES = {
@@ -13,7 +12,8 @@ export const ROUTES = {
   musicQuiz: "/music-quiz",
   rockPaperScissors: "/rock-paper-scissors",
   zombies: "/zombies",
-  sanghefte: "https://sanghefte.no",
+  sanghefte1: "https://sanghefte.no",
+  sanghefte2: "/sanghefte/rediger",
 } as const;
 
 export const LIMITS = {
@@ -60,6 +60,7 @@ export const STUN_SERVERS: RTCIceServer[] = [
 export const STORAGE_KEYS = {
   calendarDiaryCalendars: "calendar-diary-calendars",
   calendarDiaryEntries: "calendar-diary-entries",
+  sangheftePamphlets: "sanghefte-pamphlets",
 } as const;
 
 export const MESSAGES = {
