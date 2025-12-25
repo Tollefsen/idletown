@@ -10,22 +10,3 @@ export interface GameData {
   gameState: GameState;
   roundWinner: "me" | "opponent" | "tie" | null;
 }
-
-export interface Message {
-  type: "choice" | "reveal" | "reset";
-  choice?: Choice;
-}
-
-export interface ConnectionState {
-  isConnected: boolean;
-  isInitiator: boolean;
-  peerId: string | null;
-}
-
-export interface PublicRoom {
-  id: string;
-  room_code: string;
-  room_name: string;
-  created_at: string;
-  status: string;
-}
