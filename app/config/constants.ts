@@ -14,6 +14,7 @@ export const ROUTES = {
   zombies: "/zombies",
   sanghefte1: "https://sanghefte.no",
   sanghefte2: "/sanghefte/rediger",
+  tilesetTool: "/tileset-tool",
 } as const;
 
 export const LIMITS = {
@@ -121,12 +122,20 @@ export const PROJECTS = [
     hidden: true,
     external: false,
   },
+  {
+    name: "Tileset Tool",
+    route: ROUTES.tilesetTool,
+    order: 10,
+    hidden: false,
+    external: false,
+  },
 ] as const;
 
 export const STORAGE_KEYS = {
   calendarDiaryCalendars: "calendar-diary-calendars",
   calendarDiaryEntries: "calendar-diary-entries",
   sangheftePamphlets: "sanghefte-pamphlets",
+  tilesetToolTiles: "tileset-tool-tiles",
 } as const;
 
 export const MESSAGES = {
