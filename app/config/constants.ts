@@ -57,6 +57,72 @@ export const STUN_SERVERS: RTCIceServer[] = [
   },
 ];
 
+export const PROJECTS = [
+  {
+    name: "Sanghefte 1.0",
+    route: ROUTES.sanghefte1,
+    order: 1,
+    hidden: false,
+    external: true,
+  },
+  {
+    name: "Zombies",
+    route: ROUTES.zombies,
+    order: 2,
+    hidden: true,
+    external: false,
+  },
+  {
+    name: "Calendar Diary",
+    route: ROUTES.calendarDiary,
+    order: 3,
+    hidden: false,
+    external: false,
+  },
+  {
+    name: "Coin Flipper",
+    route: ROUTES.coinflipper,
+    order: 4,
+    hidden: false,
+    external: false,
+  },
+  {
+    name: "Sketchbook",
+    route: ROUTES.sketchbook,
+    order: 5,
+    hidden: false,
+    external: false,
+  },
+  {
+    name: "Music Quiz",
+    route: ROUTES.musicQuiz,
+    order: 6,
+    hidden: false,
+    external: false,
+  },
+  {
+    name: "Rock Paper Scissors",
+    route: ROUTES.rockPaperScissors,
+    order: 7,
+    hidden: false,
+    external: false,
+  },
+  {
+    name: "Sanghefte 2.0",
+    route: ROUTES.sanghefte2,
+    order: 8,
+    hidden: false,
+    external: false,
+  },
+  {
+    name: "Design System",
+    route: "/design-system",
+    order: 9,
+    hidden: true,
+    external: false,
+  },
+] as const;
+
 export const STORAGE_KEYS = {
   calendarDiaryCalendars: "calendar-diary-calendars",
   calendarDiaryEntries: "calendar-diary-entries",

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ROUTES, SITE } from "./config/constants";
+import { Card } from "./components/Card";
+import { PROJECTS, SITE } from "./config/constants";
 
 export const metadata: Metadata = {
   title: "Home",
@@ -11,11 +12,15 @@ export const metadata: Metadata = {
   },
 };
 
+const visibleProjects = PROJECTS.filter((p) => !p.hidden).toSorted(
+  (a, b) => b.order - a.order,
+);
+
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
-      <main className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8">
-        <div className="max-w-2xl text-center px-4">
+      <main className="flex-1 flex flex-col items-center p-4 sm:p-8">
+        <div className="max-w-3xl w-full text-center px-4">
           <h2 className="text-3xl sm:text-5xl font-bold mb-4 sm:mb-6">
             Welcome to {SITE.name}
           </h2>
@@ -23,51 +28,37 @@ export default function Home() {
             {SITE.description}
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
-            <Link
-              href={ROUTES.coinflipper}
-              className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-12 px-6"
-            >
-              Coin Flipper
-            </Link>
-            <Link
-              href={ROUTES.sketchbook}
-              className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-12 px-6"
-            >
-              Sketchbook
-            </Link>
-            <Link
-              href={ROUTES.calendarDiary}
-              className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-12 px-6"
-            >
-              Calendar Diary
-            </Link>
-            <Link
-              href={ROUTES.musicQuiz}
-              className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-12 px-6"
-            >
-              Music Quiz
-            </Link>
-            <Link
-              href={ROUTES.rockPaperScissors}
-              className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-12 px-6"
-            >
-              Rock Paper Scissors
-            </Link>
-            <a
-              href={ROUTES.sanghefte1}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-12 px-6"
-            >
-              Sanghefte 1.0 ↗
-            </a>
-            <Link
-              href={ROUTES.sanghefte2}
-              className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-12 px-6"
-            >
-              Sanghefte 2.0
-            </Link>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {visibleProjects.map((project) =>
+              project.external ? (
+                <a
+                  key={project.name}
+                  href={project.route}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Card
+                    variant="outlined"
+                    padding="lg"
+                    className="h-full transition-colors hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] cursor-pointer"
+                  >
+                    <span className="font-medium text-lg">
+                      {project.name} ↗
+                    </span>
+                  </Card>
+                </a>
+              ) : (
+                <Link key={project.name} href={project.route}>
+                  <Card
+                    variant="outlined"
+                    padding="lg"
+                    className="h-full transition-colors hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] cursor-pointer"
+                  >
+                    <span className="font-medium text-lg">{project.name}</span>
+                  </Card>
+                </Link>
+              ),
+            )}
           </div>
         </div>
       </main>
