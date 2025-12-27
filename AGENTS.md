@@ -25,6 +25,11 @@
 - Next.js 15 with React 19
 - Biome for linting and formatting
 - Tailwind CSS for styling
+- **Design System**: Reusable UI components in `app/components/` (Button, Card, Modal, Alert, etc.)
+  - Import from `@/app/components` (barrel export)
+  - Theme tokens in `app/config/theme.ts` for colors, spacing, variants
+  - Preview at `/design-system`
+  - Prefer design system components over custom implementations
 - Vitest with happy-dom for testing
 - Multiple projects:
   - **Zombies**: Kaplay-based 2D survival game with player, enemies, bullets, and scoring
