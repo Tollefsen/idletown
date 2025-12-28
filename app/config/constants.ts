@@ -15,6 +15,7 @@ export const ROUTES = {
   sanghefte1: "https://sanghefte.no",
   sanghefte2: "/sanghefte/rediger",
   tilesetTool: "/tileset-tool",
+  cashflowMonteCarlo: "/cashflow-monte-carlo",
 } as const;
 
 export const LIMITS = {
@@ -129,6 +130,13 @@ export const PROJECTS = [
     hidden: false,
     external: false,
   },
+  {
+    name: "Cash Flow Monte Carlo",
+    route: ROUTES.cashflowMonteCarlo,
+    order: 11,
+    hidden: false,
+    external: false,
+  },
 ] as const;
 
 export const STORAGE_KEYS = {
@@ -136,6 +144,7 @@ export const STORAGE_KEYS = {
   calendarDiaryEntries: "calendar-diary-entries",
   sangheftePamphlets: "sanghefte-pamphlets",
   tilesetToolTiles: "tileset-tool-tiles",
+  cashflowMonteCarloScenarios: "cashflow-monte-carlo-scenarios",
 } as const;
 
 export const MESSAGES = {
