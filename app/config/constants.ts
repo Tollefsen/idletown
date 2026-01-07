@@ -16,6 +16,7 @@ export const ROUTES = {
   sanghefte2: "/sanghefte/rediger",
   tilesetTool: "/tileset-tool",
   cashflowMonteCarlo: "/cashflow-monte-carlo",
+  sampleSizeCalculator: "/sample-size-calculator",
 } as const;
 
 export const LIMITS = {
@@ -137,6 +138,13 @@ export const PROJECTS = [
     hidden: false,
     external: false,
   },
+  {
+    name: "Sample Size Calculator",
+    route: ROUTES.sampleSizeCalculator,
+    order: 12,
+    hidden: false,
+    external: false,
+  },
 ] as const;
 
 export const STORAGE_KEYS = {
@@ -145,6 +153,7 @@ export const STORAGE_KEYS = {
   sangheftePamphlets: "sanghefte-pamphlets",
   tilesetToolTiles: "tileset-tool-tiles",
   cashflowMonteCarloScenarios: "cashflow-monte-carlo-scenarios",
+  sampleSizeScenarios: "sample-size-calculator-scenarios",
 } as const;
 
 export const MESSAGES = {
