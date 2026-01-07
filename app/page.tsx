@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 };
 
 const visibleProjects = PROJECTS.filter((p) => !p.hidden).toSorted(
-  (a, b) => b.order - a.order,
+  (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
 );
 
 export default function Home() {
@@ -64,7 +64,23 @@ export default function Home() {
       </main>
 
       <footer className="border-t border-black/[.08] dark:border-white/[.145] p-4 text-center text-sm text-gray-600 dark:text-gray-400">
-        {SITE.name}
+        <div className="flex items-center justify-center gap-4">
+          <span>{SITE.name}</span>
+          <span className="text-gray-300 dark:text-gray-600">|</span>
+          <Link
+            href="/year-of-vibe"
+            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+          >
+            Year of Vibe
+          </Link>
+          <span className="text-gray-300 dark:text-gray-600">|</span>
+          <Link
+            href="/design-system"
+            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+          >
+            Design System
+          </Link>
+        </div>
       </footer>
     </div>
   );

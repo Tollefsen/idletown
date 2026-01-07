@@ -17,7 +17,31 @@ export const ROUTES = {
   tilesetTool: "/tileset-tool",
   cashflowMonteCarlo: "/cashflow-monte-carlo",
   sampleSizeCalculator: "/sample-size-calculator",
+  yearOfVibe: "/year-of-vibe",
 } as const;
+
+export const PROJECT_CATEGORIES = [
+  "game",
+  "tool",
+  "utility",
+  "creative",
+  "experiment",
+  "dashboard",
+] as const;
+
+export type ProjectCategory = (typeof PROJECT_CATEGORIES)[number];
+export type ProjectStatus = "active" | "complete" | "wip";
+
+export interface Project {
+  name: string;
+  route: string;
+  createdAt: string;
+  hidden: boolean;
+  external: boolean;
+  description?: string;
+  category?: ProjectCategory[];
+  status?: ProjectStatus;
+}
 
 export const LIMITS = {
   qrCapacity: 3391,
@@ -60,92 +84,139 @@ export const STUN_SERVERS: RTCIceServer[] = [
   },
 ];
 
-export const PROJECTS = [
+export const PROJECTS: Project[] = [
   {
     name: "Sanghefte 1.0",
     route: ROUTES.sanghefte1,
-    order: 1,
+    createdAt: "2020-01-01",
     hidden: false,
     external: true,
+    description: "The original digital songbook for gatherings",
+    category: ["creative", "utility"],
+    status: "complete",
   },
   {
     name: "Zombies",
     route: ROUTES.zombies,
-    order: 2,
+    createdAt: "2025-07-24",
     hidden: true,
     external: false,
+    description: "2D top-down survival shooter built with Kaplay",
+    category: ["game"],
+    status: "wip",
   },
   {
     name: "Calendar Diary",
     route: ROUTES.calendarDiary,
-    order: 3,
+    createdAt: "2025-10-08",
     hidden: false,
     external: false,
+    description: "Custom calendar with integrated diary entries",
+    category: ["tool", "utility"],
+    status: "complete",
   },
   {
     name: "Coin Flipper",
     route: ROUTES.coinflipper,
-    order: 4,
+    createdAt: "2025-10-11",
     hidden: false,
     external: false,
+    description: "Animated coin flip for quick decisions",
+    category: ["game", "experiment"],
+    status: "complete",
   },
   {
     name: "Sketchbook",
     route: ROUTES.sketchbook,
-    order: 5,
+    createdAt: "2025-10-26",
     hidden: false,
     external: false,
+    description: "Canvas drawing app with QR code sharing",
+    category: ["creative", "tool"],
+    status: "complete",
   },
   {
     name: "Music Quiz",
     route: ROUTES.musicQuiz,
-    order: 6,
+    createdAt: "2025-10-26",
     hidden: false,
     external: false,
+    description: "YouTube-based music guessing game",
+    category: ["game", "creative"],
+    status: "complete",
   },
   {
     name: "Rock Paper Scissors",
     route: ROUTES.rockPaperScissors,
-    order: 7,
+    createdAt: "2025-10-31",
     hidden: false,
     external: false,
+    description: "Real-time multiplayer via WebRTC",
+    category: ["game", "experiment"],
+    status: "complete",
   },
   {
     name: "Sanghefte 2.0",
     route: ROUTES.sanghefte2,
-    order: 8,
+    createdAt: "2025-12-25",
     hidden: false,
     external: false,
+    description: "Redesigned songbook with pamphlet editor",
+    category: ["creative", "utility"],
+    status: "complete",
   },
   {
     name: "Design System",
     route: "/design-system",
-    order: 9,
+    createdAt: "2025-12-27",
     hidden: true,
     external: false,
+    description: "Reusable UI component library for Idle Town",
+    category: ["tool"],
+    status: "active",
   },
   {
     name: "Tileset Tool",
     route: ROUTES.tilesetTool,
-    order: 10,
+    createdAt: "2025-12-27",
     hidden: false,
     external: false,
+    description: "Pixel art tileset editor with auto-tiling rules",
+    category: ["tool", "creative", "game"],
+    status: "wip",
   },
   {
     name: "Cash Flow Monte Carlo",
     route: ROUTES.cashflowMonteCarlo,
-    order: 11,
+    createdAt: "2025-12-28",
     hidden: false,
     external: false,
+    description:
+      "Financial projection simulator with probability distributions",
+    category: ["tool", "utility"],
+    status: "complete",
   },
   {
     name: "Sample Size Calculator",
     route: ROUTES.sampleSizeCalculator,
-    order: 12,
+    createdAt: "2026-01-07",
     hidden: false,
     external: false,
+    description: "A/B test sample size and duration estimator",
+    category: ["tool", "utility"],
+    status: "complete",
   },
-] as const;
+  {
+    name: "Year of Vibe",
+    route: ROUTES.yearOfVibe,
+    createdAt: "2026-01-07",
+    hidden: true,
+    external: false,
+    description: "Personal dashboard tracking 52 projects in 2026",
+    category: ["dashboard"],
+    status: "active",
+  },
+];
 
 export const STORAGE_KEYS = {
   calendarDiaryCalendars: "calendar-diary-calendars",
