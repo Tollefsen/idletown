@@ -18,6 +18,7 @@ export const ROUTES = {
   cashflowMonteCarlo: "/cashflow-monte-carlo",
   sampleSizeCalculator: "/sample-size-calculator",
   yearOfVibe: "/year-of-vibe",
+  sudoku: "/sudoku",
 } as const;
 
 export const PROJECT_CATEGORIES = [
@@ -215,6 +216,16 @@ export const PROJECTS: Project[] = [
     description: "Personal dashboard tracking 52 projects in 2026",
     category: ["dashboard"],
     status: "active",
+  },
+  {
+    name: "Sudoku Analyzer",
+    route: ROUTES.sudoku,
+    createdAt: "2026-01-21",
+    hidden: false,
+    external: false,
+    description: "Analyze Sudoku puzzle difficulty based on solving techniques",
+    category: ["tool", "game"],
+    status: "complete",
   },
 ];
 
