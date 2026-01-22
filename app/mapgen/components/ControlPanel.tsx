@@ -2,6 +2,15 @@
 
 import { useState } from "react";
 import { Button } from "@/app/components";
+import {
+  BIOMES,
+  type BiomeConfig,
+  type BiomePreset,
+  type BiomeType,
+  DEFAULT_BIOME_CONFIG,
+  getBiomePreset,
+  getBiomesByCategory,
+} from "../lib/biomes";
 import { DEFAULT_NOISE_PARAMS } from "../lib/noise";
 import { generateRandomSeed } from "../lib/seededRandom";
 import {
@@ -51,6 +60,40 @@ function Slider({ label, value, min, max, step, onChange }: SliderProps) {
   );
 }
 
+type BiomeCheckboxProps = {
+  biomeType: BiomeType;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+};
+
+function BiomeCheckbox({ biomeType, checked, onChange }: BiomeCheckboxProps) {
+  const biome = BIOMES[biomeType];
+  // Truncate long names to fit in 2-column grid
+  const displayName =
+    biome.name.length > 12 ? `${biome.name.slice(0, 11)}...` : biome.name;
+
+  return (
+    <label className="flex items-center gap-1.5 cursor-pointer group">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="w-3 h-3 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
+      />
+      <span
+        className="w-3 h-3 rounded-sm flex-shrink-0"
+        style={{ backgroundColor: biome.palette.primary }}
+      />
+      <span
+        className="text-xs text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 truncate"
+        title={biome.name}
+      >
+        {displayName}
+      </span>
+    </label>
+  );
+}
+
 const SIZE_OPTIONS: { value: MapSize; label: string }[] = [
   { value: 512, label: "512px" },
   { value: 768, label: "768px" },
@@ -72,6 +115,12 @@ export function ControlPanel({
   isGenerating,
 }: ControlPanelProps) {
   const [featuresExpanded, setFeaturesExpanded] = useState(false);
+  const [biomesExpanded, setBiomesExpanded] = useState(false);
+
+  // Get biomes by category for UI
+  const landBiomes = getBiomesByCategory("land");
+  const fantasyBiomes = getBiomesByCategory("fantasy");
+  const alienBiomes = getBiomesByCategory("alien");
 
   const handleSeedChange = (seed: string) => {
     onParamsChange({ ...params, seed: seed.toUpperCase() });
@@ -121,6 +170,24 @@ export function ControlPanel({
     });
   };
 
+  const handleBiomeToggle = (biomeType: BiomeType, enabled: boolean) => {
+    onParamsChange({
+      ...params,
+      biomeConfig: { ...params.biomeConfig, [biomeType]: enabled },
+    });
+  };
+
+  const handlePresetChange = (preset: BiomePreset) => {
+    onParamsChange({
+      ...params,
+      biomeConfig: getBiomePreset(preset),
+    });
+  };
+
+  const handleFictionalCoverageChange = (fictionalCoverage: number) => {
+    onParamsChange({ ...params, fictionalCoverage });
+  };
+
   const handleReset = () => {
     onParamsChange({
       ...params,
@@ -130,6 +197,8 @@ export function ControlPanel({
       islandFactor: 0.7,
       noiseParams: DEFAULT_NOISE_PARAMS,
       featureDensity: DEFAULT_FEATURE_DENSITY,
+      biomeConfig: DEFAULT_BIOME_CONFIG,
+      fictionalCoverage: 0.4,
     });
   };
 
@@ -154,8 +223,8 @@ export function ControlPanel({
             value={params.seed}
             onChange={(e) => handleSeedChange(e.target.value)}
             maxLength={16}
-            className="flex-1 px-3 py-2 text-sm font-mono border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-            placeholder="Enter seed..."
+            className="w-32 min-w-0 px-3 py-2 text-sm font-mono border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            placeholder="Seed..."
           />
           <Button variant="ghost" size="sm" onClick={handleRandomSeed}>
             Random
@@ -292,6 +361,114 @@ export function ControlPanel({
               step={1}
               onChange={(v) => handleFeatureDensityChange("rivers", v)}
             />
+          </div>
+        )}
+      </div>
+
+      {/* Biome Configuration (Collapsible) */}
+      <div className="flex flex-col gap-1">
+        <button
+          type="button"
+          onClick={() => setBiomesExpanded(!biomesExpanded)}
+          className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+        >
+          <span>Biomes</span>
+          <span className="text-xs">{biomesExpanded ? "▼" : "▶"}</span>
+        </button>
+        {biomesExpanded && (
+          <div className="flex flex-col gap-3 pt-2 pl-2 border-l-2 border-gray-200 dark:border-gray-700">
+            {/* Preset Buttons */}
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Quick Presets
+              </span>
+              <div className="flex flex-wrap gap-1">
+                {(
+                  [
+                    { preset: "realistic", label: "Realistic" },
+                    { preset: "fantasy", label: "Fantasy" },
+                    { preset: "alien", label: "Alien" },
+                    { preset: "fullFantasy", label: "Full" },
+                  ] as const
+                ).map(({ preset, label }) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => handlePresetChange(preset)}
+                    className="px-2 py-1 text-xs rounded border bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Fictional Coverage Slider */}
+            <Slider
+              label="Fictional Coverage"
+              value={params.fictionalCoverage}
+              min={0.15}
+              max={0.8}
+              step={0.05}
+              onChange={handleFictionalCoverageChange}
+            />
+
+            {/* Land Biomes */}
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Land Biomes
+              </span>
+              <div className="grid grid-cols-2 gap-1">
+                {landBiomes.map((biomeType) => (
+                  <BiomeCheckbox
+                    key={biomeType}
+                    biomeType={biomeType}
+                    checked={params.biomeConfig[biomeType] ?? true}
+                    onChange={(checked) =>
+                      handleBiomeToggle(biomeType, checked)
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Fantasy Biomes */}
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Fantasy Biomes
+              </span>
+              <div className="grid grid-cols-2 gap-1">
+                {fantasyBiomes.map((biomeType) => (
+                  <BiomeCheckbox
+                    key={biomeType}
+                    biomeType={biomeType}
+                    checked={params.biomeConfig[biomeType] ?? false}
+                    onChange={(checked) =>
+                      handleBiomeToggle(biomeType, checked)
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Alien Biomes */}
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Alien Biomes
+              </span>
+              <div className="grid grid-cols-2 gap-1">
+                {alienBiomes.map((biomeType) => (
+                  <BiomeCheckbox
+                    key={biomeType}
+                    biomeType={biomeType}
+                    checked={params.biomeConfig[biomeType] ?? false}
+                    onChange={(checked) =>
+                      handleBiomeToggle(biomeType, checked)
+                    }
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>

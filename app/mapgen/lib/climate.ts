@@ -31,7 +31,7 @@ export function calculateTemperature(
 /**
  * Calculate distance from each point to nearest water
  * Uses a simple flood-fill approach
- * Rivers can optionally be included as water sources
+ * Rivers and endorheic lakes can optionally be included as water sources
  */
 export function calculateDistanceToWater(
   elevationMap: Float32Array,
@@ -39,15 +39,17 @@ export function calculateDistanceToWater(
   height: number,
   seaLevel: number,
   rivers?: Set<number>,
+  endorheicLakePixels?: Set<number>,
 ): Float32Array {
   const distances = new Float32Array(width * height);
   const maxDistance = Math.sqrt(width * width + height * height);
 
-  // Initialize: water = 0, rivers = 0, land = max distance
+  // Initialize: water = 0, rivers = 0, endorheic lakes = 0, land = max distance
   for (let i = 0; i < elevationMap.length; i++) {
     const isWater = elevationMap[i] < seaLevel;
     const isRiver = rivers?.has(i) ?? false;
-    distances[i] = isWater || isRiver ? 0 : maxDistance;
+    const isEndorheicLake = endorheicLakePixels?.has(i) ?? false;
+    distances[i] = isWater || isRiver || isEndorheicLake ? 0 : maxDistance;
   }
 
   // Simple distance propagation (multiple passes for better accuracy)

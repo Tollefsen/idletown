@@ -19,6 +19,7 @@ export const ROUTES = {
   sampleSizeCalculator: "/sample-size-calculator",
   yearOfVibe: "/year-of-vibe",
   sudoku: "/sudoku",
+  mapgen: "/mapgen",
 } as const;
 
 export const PROJECT_CATEGORIES = [
@@ -226,6 +227,16 @@ export const PROJECTS: Project[] = [
     description: "Analyze Sudoku puzzle difficulty based on solving techniques",
     category: ["tool", "game"],
     status: "complete",
+  },
+  {
+    name: "World Map Generator",
+    route: ROUTES.mapgen,
+    createdAt: "2026-01-22",
+    hidden: false,
+    external: false,
+    description: "Procedural world generation with biomes, rivers, and terrain",
+    category: ["tool", "creative", "game"],
+    status: "active",
   },
 ];
 

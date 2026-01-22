@@ -3,7 +3,16 @@
  * Uses a two-pass system: shape heightmap + fractal noise, blended together
  */
 
-import { BIOMES, type Biome, getBiome, selectPaletteColor } from "./biomes";
+import {
+  BIOMES,
+  type Biome,
+  type BiomeConfig,
+  type BiomeType,
+  DEFAULT_BIOME_CONFIG,
+  getBiome,
+  getEnabledFictionalReplacements,
+  selectPaletteColor,
+} from "./biomes";
 import {
   calculateDistanceToWater,
   calculateMoisture,
@@ -42,6 +51,8 @@ export type WorldParams = {
   noiseParams: NoiseParams;
   shape: WorldShape;
   featureDensity: FeatureDensity;
+  biomeConfig: BiomeConfig;
+  fictionalCoverage: number; // 0.15 - 0.80
 };
 
 export type WorldData = {
@@ -54,6 +65,7 @@ export type WorldData = {
   detailNoise: Float32Array;
   imageData: ImageData;
   rivers: Set<number>; // pixel indices that are rivers
+  endorheicLakes: EndorheicLake[]; // lakes formed at endorheic river termini
 };
 
 export const DEFAULT_FEATURE_DENSITY: FeatureDensity = {
@@ -71,7 +83,107 @@ export const DEFAULT_WORLD_PARAMS: WorldParams = {
   noiseParams: DEFAULT_NOISE_PARAMS,
   shape: "archipelago",
   featureDensity: DEFAULT_FEATURE_DENSITY,
+  biomeConfig: DEFAULT_BIOME_CONFIG,
+  fictionalCoverage: 0.4,
 };
+
+// Endorheic lake created by river terminus (internal drainage basin)
+export type EndorheicLake = {
+  x: number; // pixel x position
+  y: number; // pixel y position
+  radius: number; // lake radius in pixels
+  totalRiverLength: number; // combined length of rivers feeding this lake
+};
+
+// Result of tracing a single river
+type RiverResult = {
+  path: number[]; // pixel indices along the river
+  terminus: "ocean" | "lake" | "endorheic"; // where the river ends
+  terminusIdx: number; // final pixel index
+};
+
+// Result of river generation including endorheic lakes
+export type RiverData = {
+  pixels: Set<number>; // all river pixel indices
+  endorheicLakes: EndorheicLake[]; // lakes formed at endorheic termini
+};
+
+// ============================================================================
+// MinHeap for Priority-Flood Algorithm
+// ============================================================================
+
+/**
+ * MinHeap implementation for priority queue operations
+ * Used by the depression filling algorithm
+ */
+class MinHeap {
+  private heap: Array<{ elevation: number; idx: number }> = [];
+
+  get size(): number {
+    return this.heap.length;
+  }
+
+  isEmpty(): boolean {
+    return this.heap.length === 0;
+  }
+
+  push(elevation: number, idx: number): void {
+    this.heap.push({ elevation, idx });
+    this.bubbleUp(this.heap.length - 1);
+  }
+
+  pop(): { elevation: number; idx: number } | undefined {
+    if (this.heap.length === 0) return undefined;
+    const result = this.heap[0];
+    const last = this.heap.pop();
+    if (last !== undefined && this.heap.length > 0) {
+      this.heap[0] = last;
+      this.bubbleDown(0);
+    }
+    return result;
+  }
+
+  private bubbleUp(idx: number): void {
+    while (idx > 0) {
+      const parentIdx = Math.floor((idx - 1) / 2);
+      if (this.heap[parentIdx].elevation <= this.heap[idx].elevation) break;
+      [this.heap[parentIdx], this.heap[idx]] = [
+        this.heap[idx],
+        this.heap[parentIdx],
+      ];
+      idx = parentIdx;
+    }
+  }
+
+  private bubbleDown(idx: number): void {
+    const length = this.heap.length;
+    while (true) {
+      const leftIdx = 2 * idx + 1;
+      const rightIdx = 2 * idx + 2;
+      let smallest = idx;
+
+      if (
+        leftIdx < length &&
+        this.heap[leftIdx].elevation < this.heap[smallest].elevation
+      ) {
+        smallest = leftIdx;
+      }
+      if (
+        rightIdx < length &&
+        this.heap[rightIdx].elevation < this.heap[smallest].elevation
+      ) {
+        smallest = rightIdx;
+      }
+
+      if (smallest === idx) break;
+      [this.heap[smallest], this.heap[idx]] = [
+        this.heap[idx],
+        this.heap[smallest],
+      ];
+      idx = smallest;
+    }
+  }
+}
 
 // ============================================================================
 // Helper Functions
@@ -965,6 +1077,183 @@ function sampleShapeHeightmap(
 // ============================================================================
 
 /**
+ * Get 8-directional neighbor indices
+ */
+function getNeighborIndices(
+  idx: number,
+  width: number,
+  height: number,
+): number[] {
+  const x = idx % width;
+  const y = Math.floor(idx / width);
+  const neighbors: number[] = [];
+
+  const directions = [
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1],
+    [-1, -1],
+    [1, -1],
+    [-1, 1],
+    [1, 1],
+  ];
+
+  for (const [dx, dy] of directions) {
+    const nx = x + dx;
+    const ny = y + dy;
+    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+      neighbors.push(ny * width + nx);
+    }
+  }
+
+  return neighbors;
+}
+
+/**
+ * Fill depressions using Priority-Flood algorithm
+ *
+ * This ensures every land cell has a valid downhill path to water.
+ * Depressions (local minima) are "filled" by raising their elevation
+ * until they overflow to an outlet.
+ *
+ * Algorithm:
+ * 1. Start from ocean/water cells (known outlets)
+ * 2. Process cells in order of increasing elevation using a min-heap
+ * 3. For each cell, check neighbors - if neighbor is lower, fill it
+ * 4. Result: filled elevation where rivers can always reach water
+ *
+ * @param elevation - Original elevation data
+ * @param width - Map width
+ * @param height - Map height
+ * @param seaLevel - Sea level threshold
+ * @param waterBodyPixels - Set of pixels that are existing water bodies (lakes, inland seas)
+ * @returns Filled elevation array
+ */
+function fillDepressions(
+  elevation: Float32Array,
+  width: number,
+  height: number,
+  seaLevel: number,
+  waterBodyPixels: Set<number>,
+): Float32Array {
+  const totalPixels = width * height;
+  const filled = new Float32Array(elevation);
+  const visited = new Uint8Array(totalPixels);
+  const pq = new MinHeap();
+
+  // Initialize: Add all water cells (ocean + water bodies) to queue as outlets
+  for (let i = 0; i < totalPixels; i++) {
+    const isWater = elevation[i] <= seaLevel || waterBodyPixels.has(i);
+    if (isWater) {
+      pq.push(elevation[i], i);
+      visited[i] = 1;
+    }
+  }
+
+  // Also add edge cells as outlets (water flows off map)
+  for (let x = 0; x < width; x++) {
+    // Top edge
+    const topIdx = x;
+    if (!visited[topIdx]) {
+      pq.push(elevation[topIdx], topIdx);
+      visited[topIdx] = 1;
+    }
+    // Bottom edge
+    const bottomIdx = (height - 1) * width + x;
+    if (!visited[bottomIdx]) {
+      pq.push(elevation[bottomIdx], bottomIdx);
+      visited[bottomIdx] = 1;
+    }
+  }
+  for (let y = 0; y < height; y++) {
+    // Left edge
+    const leftIdx = y * width;
+    if (!visited[leftIdx]) {
+      pq.push(elevation[leftIdx], leftIdx);
+      visited[leftIdx] = 1;
+    }
+    // Right edge
+    const rightIdx = y * width + (width - 1);
+    if (!visited[rightIdx]) {
+      pq.push(elevation[rightIdx], rightIdx);
+      visited[rightIdx] = 1;
+    }
+  }
+
+  // Process cells in elevation order (lowest first)
+  while (!pq.isEmpty()) {
+    const current = pq.pop();
+    if (!current) break;
+    const currentElev = current.elevation;
+    const currentIdx = current.idx;
+
+    // Check all 8 neighbors
+    const neighbors = getNeighborIndices(currentIdx, width, height);
+    for (const neighborIdx of neighbors) {
+      if (visited[neighborIdx]) continue;
+      visited[neighborIdx] = 1;
+
+      const neighborElev = elevation[neighborIdx];
+
+      // Key step: if neighbor is lower than current cell's water level,
+      // it's in a depression - fill it to current level (+ tiny epsilon)
+      if (neighborElev < currentElev) {
+        // Fill the depression
+        filled[neighborIdx] = currentElev + 0.00001;
+        pq.push(currentElev + 0.00001, neighborIdx);
+      } else {
+        // Neighbor is higher or equal - no filling needed
+        pq.push(neighborElev, neighborIdx);
+      }
+    }
+  }
+
+  return filled;
+}
+
+/**
+ * Compute which pixels belong to existing water bodies (lakes, inland seas)
+ * so rivers can terminate at them
+ */
+function computeWaterBodyPixels(
+  width: number,
+  height: number,
+  lakes: WaterBody[],
+  inlandSeas: WaterBody[],
+): Set<number> {
+  const waterPixels = new Set<number>();
+  const allWater = [...lakes, ...inlandSeas];
+
+  for (const water of allWater) {
+    // Convert normalized coords to pixel coords
+    const centerX = Math.floor(water.x * width);
+    const centerY = Math.floor(water.y * height);
+    const pixelRadiusX = Math.floor(water.radiusX * width);
+    const pixelRadiusY = Math.floor(water.radiusY * height);
+
+    // Scan bounding box and add pixels inside ellipse
+    for (let dy = -pixelRadiusY; dy <= pixelRadiusY; dy++) {
+      for (let dx = -pixelRadiusX; dx <= pixelRadiusX; dx++) {
+        const px = centerX + dx;
+        const py = centerY + dy;
+
+        if (px < 0 || px >= width || py < 0 || py >= height) continue;
+
+        // Check if inside ellipse
+        const normalizedDist =
+          (dx / pixelRadiusX) ** 2 + (dy / pixelRadiusY) ** 2;
+        if (normalizedDist <= 1) {
+          waterPixels.add(py * width + px);
+        }
+      }
+    }
+  }
+
+  return waterPixels;
+}
+
+/**
  * Find good river source points (high elevation, inland)
  */
 function findRiverSources(
@@ -1027,18 +1316,29 @@ function findRiverSources(
 }
 
 /**
- * Trace a river from source to water, following elevation gradient
+ * Trace a river from source to water, following elevation gradient on filled elevation
+ * Returns detailed result including terminus type for endorheic detection
+ *
+ * @param start - Starting pixel index
+ * @param filledElevation - Depression-filled elevation (guarantees downhill path)
+ * @param originalElevation - Original elevation (for terminus detection)
+ * @param width - Map width
+ * @param height - Map height
+ * @param seaLevel - Sea level threshold
+ * @param waterBodyPixels - Set of pixels that are existing water bodies
  */
 function traceRiver(
   start: number,
-  elevation: Float32Array,
+  filledElevation: Float32Array,
+  originalElevation: Float32Array,
   width: number,
   height: number,
   seaLevel: number,
-): number[] {
+  waterBodyPixels: Set<number>,
+): RiverResult {
   const path: number[] = [start];
   let current = start;
-  const maxLength = Math.max(width, height);
+  const maxLength = Math.max(width, height) * 2; // Allow longer paths
   const visited = new Set<number>();
   visited.add(start);
 
@@ -1058,12 +1358,19 @@ function traceRiver(
     const x = current % width;
     const y = Math.floor(current / width);
 
-    // Stop if we reached water
-    if (elevation[current] <= seaLevel) break;
+    // Check terminus conditions
+    // 1. Reached ocean
+    if (originalElevation[current] <= seaLevel) {
+      return { path, terminus: "ocean", terminusIdx: current };
+    }
+    // 2. Reached existing water body (lake/inland sea)
+    if (waterBodyPixels.has(current)) {
+      return { path, terminus: "lake", terminusIdx: current };
+    }
 
-    // Find lowest unvisited neighbor
+    // Find lowest unvisited neighbor using filled elevation
     let lowestIdx = -1;
-    let lowestElev = elevation[current];
+    let lowestElev = filledElevation[current];
 
     for (const [dx, dy] of directions) {
       const nx = x + dx;
@@ -1074,28 +1381,24 @@ function traceRiver(
       const ni = ny * width + nx;
       if (visited.has(ni)) continue;
 
-      if (elevation[ni] < lowestElev) {
+      if (filledElevation[ni] < lowestElev) {
         lowestIdx = ni;
-        lowestElev = elevation[ni];
+        lowestElev = filledElevation[ni];
       }
     }
 
-    // If no lower neighbor found, we're stuck - try to find any unvisited neighbor
+    // With filled elevation, we should always find a path down
+    // If not, we've reached a true endorheic basin (lowest point)
     if (lowestIdx === -1) {
-      // Try to find any path that continues
-      for (const [dx, dy] of directions) {
-        const nx = x + dx;
-        const ny = y + dy;
-        if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
-        const ni = ny * width + nx;
-        if (!visited.has(ni) && elevation[ni] <= seaLevel) {
-          // Found water nearby
-          path.push(ni);
-          return path;
-        }
+      // Check if we're at water
+      if (originalElevation[current] <= seaLevel) {
+        return { path, terminus: "ocean", terminusIdx: current };
       }
-      // Truly stuck, end river here
-      break;
+      if (waterBodyPixels.has(current)) {
+        return { path, terminus: "lake", terminusIdx: current };
+      }
+      // Endorheic terminus - river ends in closed basin
+      return { path, terminus: "endorheic", terminusIdx: current };
     }
 
     path.push(lowestIdx);
@@ -1103,29 +1406,148 @@ function traceRiver(
     current = lowestIdx;
   }
 
-  return path;
+  // Reached max length - classify based on where we ended
+  if (originalElevation[current] <= seaLevel) {
+    return { path, terminus: "ocean", terminusIdx: current };
+  }
+  if (waterBodyPixels.has(current)) {
+    return { path, terminus: "lake", terminusIdx: current };
+  }
+  return { path, terminus: "endorheic", terminusIdx: current };
 }
 
 /**
- * Generate all rivers
+ * Merge endorheic termini that are close together into single lakes
+ * Rivers terminating in the same basin are combined into one larger lake
+ *
+ * @param endorheicResults - River results that ended in endorheic basins
+ * @param width - Map width
+ * @param mergeRadius - Distance within which termini are considered same basin
+ */
+function mergeEndorheicLakes(
+  endorheicResults: RiverResult[],
+  width: number,
+  mergeRadius = 15,
+): EndorheicLake[] {
+  if (endorheicResults.length === 0) return [];
+
+  // Group termini by proximity
+  const groups: RiverResult[][] = [];
+  const assigned = new Set<number>();
+
+  for (let i = 0; i < endorheicResults.length; i++) {
+    if (assigned.has(i)) continue;
+
+    const group: RiverResult[] = [endorheicResults[i]];
+    assigned.add(i);
+
+    const ix = endorheicResults[i].terminusIdx % width;
+    const iy = Math.floor(endorheicResults[i].terminusIdx / width);
+
+    // Find all other termini close to this one
+    for (let j = i + 1; j < endorheicResults.length; j++) {
+      if (assigned.has(j)) continue;
+
+      const jx = endorheicResults[j].terminusIdx % width;
+      const jy = Math.floor(endorheicResults[j].terminusIdx / width);
+
+      const dist = Math.sqrt((ix - jx) ** 2 + (iy - jy) ** 2);
+      if (dist <= mergeRadius) {
+        group.push(endorheicResults[j]);
+        assigned.add(j);
+      }
+    }
+
+    groups.push(group);
+  }
+
+  // Create merged lakes
+  const lakes: EndorheicLake[] = [];
+
+  for (const group of groups) {
+    // Calculate centroid
+    let sumX = 0;
+    let sumY = 0;
+    let totalLength = 0;
+
+    for (const result of group) {
+      const x = result.terminusIdx % width;
+      const y = Math.floor(result.terminusIdx / width);
+      sumX += x;
+      sumY += y;
+      totalLength += result.path.length;
+    }
+
+    const centerX = Math.round(sumX / group.length);
+    const centerY = Math.round(sumY / group.length);
+
+    // Calculate radius based on combined river length
+    // Longer drainage = more water = larger lake
+    const baseRadius = 4;
+    const scaleFactor = 0.3;
+    const maxRadius = 25;
+    const radius = Math.min(
+      maxRadius,
+      baseRadius + Math.sqrt(totalLength) * scaleFactor,
+    );
+
+    lakes.push({
+      x: centerX,
+      y: centerY,
+      radius: Math.round(radius),
+      totalRiverLength: totalLength,
+    });
+  }
+
+  return lakes;
+}
+
+/**
+ * Generate all rivers with proper drainage to water or endorheic basins
+ *
+ * Uses depression filling to ensure all rivers reach water:
+ * 1. Fill depressions to create guaranteed drainage paths
+ * 2. Trace rivers following the filled elevation
+ * 3. Detect endorheic termini (rivers ending in closed basins)
+ * 4. Merge nearby endorheic termini into lakes
  */
 function generateRivers(
-  elevation: Float32Array,
+  originalElevation: Float32Array,
   width: number,
   height: number,
   seaLevel: number,
   count: number,
   numericSeed: number,
-): Set<number> {
-  const rivers = new Set<number>();
+  lakes: WaterBody[],
+  inlandSeas: WaterBody[],
+): RiverData {
+  const riverPixels = new Set<number>();
+  const emptyResult: RiverData = { pixels: riverPixels, endorheicLakes: [] };
 
-  if (count === 0) return rivers;
+  if (count === 0) return emptyResult;
 
   const random = createSeededRandom(numericSeed + 5000);
 
-  // Find river sources
+  // Compute existing water body pixels
+  const waterBodyPixels = computeWaterBodyPixels(
+    width,
+    height,
+    lakes,
+    inlandSeas,
+  );
+
+  // Fill depressions to ensure drainage
+  const filledElevation = fillDepressions(
+    originalElevation,
+    width,
+    height,
+    seaLevel,
+    waterBodyPixels,
+  );
+
+  // Find river sources (use filled elevation for better source selection)
   const sources = findRiverSources(
-    elevation,
+    filledElevation,
     width,
     height,
     seaLevel,
@@ -1133,21 +1555,100 @@ function generateRivers(
     random,
   );
 
-  // Trace each river
-  for (const source of sources) {
-    const riverPath = traceRiver(source, elevation, width, height, seaLevel);
+  // Trace each river and collect results
+  const riverResults: RiverResult[] = [];
+  const endorheicResults: RiverResult[] = [];
 
-    // Add all river pixels
-    for (const idx of riverPath) {
-      rivers.add(idx);
-      // Make rivers slightly wider (add adjacent pixels on x-axis)
+  for (const source of sources) {
+    const result = traceRiver(
+      source,
+      filledElevation,
+      originalElevation,
+      width,
+      height,
+      seaLevel,
+      waterBodyPixels,
+    );
+
+    riverResults.push(result);
+
+    // Track endorheic rivers separately for lake creation
+    if (result.terminus === "endorheic") {
+      endorheicResults.push(result);
+    }
+
+    // Add all river pixels (with width)
+    for (const idx of result.path) {
+      riverPixels.add(idx);
+      // Make rivers slightly wider (add adjacent pixels)
       const x = idx % width;
-      if (x > 0) rivers.add(idx - 1);
-      if (x < width - 1) rivers.add(idx + 1);
+      if (x > 0) riverPixels.add(idx - 1);
+      if (x < width - 1) riverPixels.add(idx + 1);
     }
   }
 
-  return rivers;
+  // Merge nearby endorheic termini into lakes
+  const endorheicLakes = mergeEndorheicLakes(endorheicResults, width);
+
+  return { pixels: riverPixels, endorheicLakes };
+}
+
+// ============================================================================
+// Fictional Biome Placement
+// ============================================================================
+
+/**
+ * Apply fictional biome replacement using noise-based patches
+ *
+ * Creates natural-looking patches where enabled fictional biomes
+ * replace their source biomes (e.g., crystalForest replaces borealForest)
+ *
+ * @param naturalBiomeType - The biome determined by climate
+ * @param x - Pixel x coordinate
+ * @param y - Pixel y coordinate
+ * @param biomeConfig - Which biomes are enabled
+ * @param fictionalCoverage - Percentage of source biome to replace (0.15-0.80)
+ * @param seed - Random seed for consistent results
+ * @returns The final biome type (may be fictional replacement)
+ */
+function applyFictionalBiomes(
+  naturalBiomeType: BiomeType,
+  x: number,
+  y: number,
+  biomeConfig: BiomeConfig,
+  fictionalCoverage: number,
+  seed: number,
+): BiomeType {
+  // Get enabled fictional biomes that can replace this natural biome
+  const replacements = getEnabledFictionalReplacements(
+    naturalBiomeType,
+    biomeConfig,
+  );
+  if (replacements.length === 0) return naturalBiomeType;
+
+  // Use noise to create natural-looking patches
+  // Each fictional biome gets its own noise layer with different offset
+  for (let i = 0; i < replacements.length; i++) {
+    const fictional = replacements[i];
+
+    // Generate noise value for this fictional biome at this position
+    // Use different offsets per biome for varied distribution
+    const noiseValue = simplex2(
+      x * 0.02 + seed * 0.1 + i * 100,
+      y * 0.02 + seed * 0.1 + i * 100,
+    );
+
+    // Convert coverage (0.15-0.80) to threshold
+    // Higher coverage = lower threshold = more area covered
+    // Noise ranges from -1 to 1, we want coverage% of that range
+    const threshold = 1 - fictionalCoverage * 2;
+
+    if (noiseValue > threshold) {
+      return fictional;
+    }
+  }
+
+  return naturalBiomeType;
 }
 
 // ============================================================================
@@ -1166,6 +1667,8 @@ export function generateWorld(params: WorldParams): WorldData {
     noiseParams,
     shape,
     featureDensity,
+    biomeConfig,
+    fictionalCoverage,
   } = params;
   const width = size;
   const height = size;
@@ -1216,15 +1719,25 @@ export function generateWorld(params: WorldParams): WorldData {
 
   // ====== RIVER GENERATION PHASE ======
   // Generate rivers after elevation is known (they follow terrain)
+  // This uses depression filling to ensure all rivers reach water or endorheic basins
   const multipliers = getFeatureMultipliers(shape);
   const riverCount = Math.round(featureDensity.rivers * multipliers.rivers);
-  const rivers = generateRivers(
+  const riverData = generateRivers(
     elevation,
     width,
     height,
     seaLevel,
     riverCount,
     numericSeed,
+    shapeConfig.lakes || [],
+    shapeConfig.inlandSeas || [],
+  );
+
+  // Compute endorheic lake pixels for rendering and moisture calculation
+  const endorheicLakePixels = computeEndorheicLakePixels(
+    riverData.endorheicLakes,
+    width,
+    height,
   );
 
   // ====== CLIMATE PHASE ======
@@ -1233,13 +1746,14 @@ export function generateWorld(params: WorldParams): WorldData {
   const detailNoise = new Float32Array(totalPixels);
   const biomes: Biome[] = new Array(totalPixels);
 
-  // Calculate distance to water for moisture (include rivers as water sources)
+  // Calculate distance to water for moisture (include rivers and endorheic lakes as water sources)
   const distanceToWater = calculateDistanceToWater(
     elevation,
     width,
     height,
     seaLevel,
-    rivers,
+    riverData.pixels,
+    endorheicLakePixels,
   );
 
   // Find max distance for normalization
@@ -1292,13 +1806,42 @@ export function generateWorld(params: WorldParams): WorldData {
     }
   }
 
-  // Determine biomes
+  // Determine biomes with config and fictional biome replacement
   for (let i = 0; i < totalPixels; i++) {
-    biomes[i] = getBiome(elevation[i], temperature[i], moisture[i], seaLevel);
+    const x = i % width;
+    const y = Math.floor(i / width);
+
+    // Get natural biome with fallback resolution for disabled biomes
+    const naturalBiome = getBiome(
+      elevation[i],
+      temperature[i],
+      moisture[i],
+      seaLevel,
+      biomeConfig,
+    );
+
+    // Apply fictional biome replacement if any enabled
+    const finalBiomeType = applyFictionalBiomes(
+      naturalBiome.type,
+      x,
+      y,
+      biomeConfig,
+      fictionalCoverage,
+      numericSeed,
+    );
+
+    biomes[i] = BIOMES[finalBiomeType];
   }
 
-  // Create image data with palette colors (including rivers)
-  const imageData = createImageData(width, height, biomes, detailNoise, rivers);
+  // Create image data with palette colors (including rivers and endorheic lakes)
+  const imageData = createImageData(
+    width,
+    height,
+    biomes,
+    detailNoise,
+    riverData.pixels,
+    endorheicLakePixels,
+  );
 
   return {
     width,
@@ -1309,7 +1852,8 @@ export function generateWorld(params: WorldParams): WorldData {
     biomes,
     detailNoise,
     imageData,
-    rivers,
+    rivers: riverData.pixels,
+    endorheicLakes: riverData.endorheicLakes,
   };
 }
 
@@ -1329,8 +1873,39 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
 }
 
 /**
+ * Compute pixel set for endorheic lakes
+ */
+function computeEndorheicLakePixels(
+  endorheicLakes: EndorheicLake[],
+  width: number,
+  height: number,
+): Set<number> {
+  const lakePixels = new Set<number>();
+
+  for (const lake of endorheicLakes) {
+    const radiusSq = lake.radius * lake.radius;
+
+    for (let dy = -lake.radius; dy <= lake.radius; dy++) {
+      for (let dx = -lake.radius; dx <= lake.radius; dx++) {
+        // Circular lake shape
+        if (dx * dx + dy * dy <= radiusSq) {
+          const px = lake.x + dx;
+          const py = lake.y + dy;
+
+          if (px >= 0 && px < width && py >= 0 && py < height) {
+            lakePixels.add(py * width + px);
+          }
+        }
+      }
+    }
+  }
+
+  return lakePixels;
+}
+
+/**
  * Create ImageData from biomes using palette colors based on detail noise
- * Rivers are rendered with a distinct color
+ * Rivers and endorheic lakes are rendered with distinct colors
  */
 function createImageData(
   width: number,
@@ -1338,14 +1913,25 @@ function createImageData(
   biomes: Biome[],
   detailNoise: Float32Array,
   rivers: Set<number>,
+  endorheicLakePixels: Set<number>,
 ): ImageData {
   const data = new Uint8ClampedArray(width * height * 4);
   const riverBiome = BIOMES.river;
+  const endorheicLakeBiome = BIOMES.endorheicLake;
 
   for (let i = 0; i < biomes.length; i++) {
-    // Check if this pixel is a river
+    // Check special water features (endorheic lakes take priority over rivers)
+    const isEndorheicLake = endorheicLakePixels.has(i);
     const isRiver = rivers.has(i);
-    const biome = isRiver ? riverBiome : biomes[i];
+
+    let biome: Biome;
+    if (isEndorheicLake) {
+      biome = endorheicLakeBiome;
+    } else if (isRiver) {
+      biome = riverBiome;
+    } else {
+      biome = biomes[i];
+    }
 
     const paletteKey = selectPaletteColor(detailNoise[i]);
     const color = biome.palette[paletteKey];
