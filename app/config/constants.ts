@@ -20,6 +20,8 @@ export const ROUTES = {
   yearOfVibe: "/year-of-vibe",
   sudoku: "/sudoku",
   mapgen: "/mapgen",
+  ost: "/opportunity-solution-tree",
+  minesweeper: "/minesweeper",
 } as const;
 
 export const PROJECT_CATEGORIES = [
@@ -238,6 +240,28 @@ export const PROJECTS: Project[] = [
     category: ["tool", "creative", "game"],
     status: "active",
   },
+  {
+    name: "Opportunity Solution Tree",
+    route: ROUTES.ost,
+    createdAt: "2026-03-15",
+    hidden: false,
+    external: false,
+    description:
+      "Visual product discovery tool for mapping outcomes to experiments",
+    category: ["tool"],
+    status: "active",
+  },
+  {
+    name: "Minefield",
+    route: ROUTES.minesweeper,
+    createdAt: "2026-03-15",
+    hidden: false,
+    external: false,
+    description:
+      "Minesweeper twist — navigate a character through the minefield",
+    category: ["game"],
+    status: "complete",
+  },
 ];
 
 export const STORAGE_KEYS = {
@@ -247,6 +271,7 @@ export const STORAGE_KEYS = {
   tilesetToolTiles: "tileset-tool-tiles",
   cashflowMonteCarloScenarios: "cashflow-monte-carlo-scenarios",
   sampleSizeScenarios: "sample-size-calculator-scenarios",
+  ostTrees: "ost-trees",
 } as const;
 
 export const MESSAGES = {
